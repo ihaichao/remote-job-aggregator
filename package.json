@@ -1,0 +1,26 @@
+{
+  "name": "@remote/root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remote job aggregator for software developers",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "prisma:generate": "pnpm --filter @remote/backend prisma:generate",
+    "prisma:migrate": "pnpm --filter @remote/backend prisma:migrate",
+    "prisma:studio": "pnpm --filter @remote/backend prisma:studio"
+  },
+  "devDependencies": {
+    "turbo": "^1.11.3"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

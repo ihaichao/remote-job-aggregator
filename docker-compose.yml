@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: remote-jobs-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: remote_jobs
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: remote-jobs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: remote-jobs-meilisearch
+    environment:
+      MEILI_MASTER_KEY: masterKey
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: remote-jobs-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs?schema=public
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_URL: http://meilisearch:7700
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+      - meilisearch
+    networks:
+      - app-network
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: remote-jobs-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:4000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: remote-jobs-scraper
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    command: sh -c "while true; do python main.py && sleep 3600; done"
+
+  nginx:
+    image: nginx:alpine
+    container_name: remote-jobs-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+
+networks:
+  app-network:
+    driver: bridge
