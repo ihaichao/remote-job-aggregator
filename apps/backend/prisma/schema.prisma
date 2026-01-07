@@ -10,28 +10,21 @@ datasource db {
 }
 
 model Job {
-  id             Int       @id @default(autoincrement())
-  title          String    @db.VarChar(255)
-  company        String    @db.VarChar(255)
-  companyLogo    String?   @map("company_logo") @db.VarChar(500)
-  category       String    @db.VarChar(50)
-  tags           String[]
-  regionLimit    String    @map("region_limit") @db.VarChar(50)
-  locationDetail String?   @map("location_detail") @db.Text
-  workType       String    @map("work_type") @db.VarChar(50)
-  salaryCurrency String?   @map("salary_currency") @db.VarChar(10)
-  salaryMin      Int?      @map("salary_min")
-  salaryMax      Int?      @map("salary_max")
-  salaryPeriod   String?   @map("salary_period") @db.VarChar(20)
-  sourceSite     String    @map("source_site") @db.VarChar(50)
-  originalUrl    String    @unique @map("original_url") @db.Text
-  contentHash    String    @unique @map("content_hash") @db.VarChar(64)
-  description    String?   @db.Text
-  datePosted     DateTime? @map("date_posted")
-  dateScraped    DateTime  @default(now()) @map("date_scraped")
-  isActive       Boolean   @default(true) @map("is_active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  category    String    @db.VarChar(50)
+  tags        String[]
+  regionLimit String    @map("region_limit") @db.VarChar(50)
+  workType    String    @map("work_type") @db.VarChar(50)
+  sourceSite  String    @map("source_site") @db.VarChar(50)
+  originalUrl String    @unique @map("original_url") @db.Text
+  contentHash String    @unique @map("content_hash") @db.VarChar(64)
+  description String?   @db.Text
+  datePosted  DateTime? @map("date_posted")
+  dateScraped DateTime  @default(now()) @map("date_scraped")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([category])
   @@index([regionLimit])

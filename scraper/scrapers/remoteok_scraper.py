@@ -26,7 +26,17 @@ class RemoteOKScraper:
                     if not item.get('position'):
                         continue
 
+                    # Skip internship jobs
+                    position = item.get('position', '').lower()
+                    if any(kw in position for kw in ['intern', 'internship']):
+                        continue
+
                     tags = item.get('tags', [])
+                    description = item.get('description', '')
+
+                    # Skip jobs not related to software development
+                    if not self._is_dev_related(item.get('position', ''), tags, description):
+                        continue
 
                     job = {
                         'title': item['position'],
@@ -38,7 +48,7 @@ class RemoteOKScraper:
                         'work_type': 'fulltime',
                         'source_site': 'remoteok',
                         'original_url': item.get('url', f"https://remoteok.com/remote-jobs/{item.get('id', '')}"),
-                        'description': item.get('description', ''),
+                        'description': description,
                         'salary_min': self._parse_salary(item.get('salary_min')),
                         'salary_max': self._parse_salary(item.get('salary_max')),
                         'date_posted': item.get('date'),
@@ -80,19 +90,77 @@ class RemoteOKScraper:
 
         return 'unknown'
 
+    def _is_dev_related(self, position: str, tags: List[str], description: str) -> bool:
+        """Check if job is related to software development"""
+        text = (position + ' ' + ' '.join(tags) + ' ' + description).lower()
+        
+        dev_keywords = [
+            # Languages
+            'python', 'java', 'javascript', 'typescript', 'go', 'golang', 'rust', 'c++', 'ruby', 'php', 'swift', 'kotlin',
+            # Frontend
+            'frontend', 'front-end', 'react', 'vue', 'angular', 'css', 'html',
+            # Backend
+            'backend', 'back-end', 'api', 'server', 'microservice',
+            # Mobile
+            'ios', 'android', 'flutter', 'mobile',
+            # Database
+            'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'database',
+            # DevOps/Infra
+            'devops', 'sre', 'kubernetes', 'k8s', 'docker', 'aws', 'azure', 'gcp', 'cloud',
+            # AI/ML
+            'machine learning', 'ml', 'ai', 'data scientist', 'nlp', 'tensorflow', 'pytorch',
+            # Blockchain
+            'blockchain', 'web3', 'solidity', 'smart contract',
+            # General dev terms
+            'developer', 'engineer', 'programmer', 'software', 'coding', 'code',
+            'architect', 'fullstack', 'full-stack',
+            # Testing
+            'qa', 'test', 'automation',
+            # Security
+            'security', 'penetration', 'infosec',
+        ]
+        
+        return any(kw in text for kw in dev_keywords)
+
     def _extract_region(self, item: Dict) -> str:
-        """Extract region restriction from job data"""
-        location = item.get('location', '').lower()
-
-        if not location or location in ['worldwide', 'anywhere', 'remote']:
+        """Extract specific region/timezone restriction from job data"""
+        location = (item.get('location', '') or '').lower()
+        
+        # If no location or worldwide
+        if not location or location in ['worldwide', 'anywhere', 'remote', 'global']:
             return 'worldwide'
-        elif any(region in location for region in ['usa', 'us only', 'united states', 'america']):
-            return 'regional'
-        elif any(region in location for region in ['europe', 'eu only', 'uk']):
-            return 'regional'
-        elif 'timezone' in location or 'utc' in location:
-            return 'timezone'
-
+        
+        # United States
+        if any(region in location for region in ['usa', 'us only', 'united states', 'america', 'u.s.']):
+            return 'US'
+        
+        # Europe
+        if any(region in location for region in ['europe', 'eu only', 'uk', 'emea', 'european']):
+            return 'EU'
+        
+        # Asia-Pacific (use word boundary to avoid matching 'Apache')
+        import re
+        if re.search(r'\b(asia|apac|asia-pacific)\b', location) or any(region in location for region in ['australia', 'latam']):
+            return 'APAC'
+        
+        # Check for timezone patterns
+        import re
+        tz_pattern = r'(utc|gmt)\s*([+-]\d{1,2})'
+        tz_match = re.search(tz_pattern, location)
+        if tz_match:
+            offset = tz_match.group(2)
+            return f'UTC{offset}'
+        
+        # Named timezones
+        if 'pst' in location or 'pacific' in location:
+            return 'UTC-8'
+        if 'est' in location or 'eastern' in location:
+            return 'UTC-5'
+        if 'cet' in location or 'central european' in location:
+            return 'UTC+1'
+        
+        # If location specified but not matched, return the cleaned location
+        # or default to worldwide
         return 'worldwide'
 
     def _parse_salary(self, salary_value) -> int:

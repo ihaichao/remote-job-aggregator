@@ -10,8 +10,16 @@ export class JobsController {
     @Query('category') category?: string,
     @Query('regionLimit') regionLimit?: string,
     @Query('workType') workType?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.jobsService.findAll({ category, regionLimit, workType });
+    return this.jobsService.findAll({
+      category,
+      regionLimit,
+      workType,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
   }
 
   @Get(':id')

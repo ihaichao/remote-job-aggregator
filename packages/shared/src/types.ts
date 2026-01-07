@@ -1,18 +1,11 @@
-// Job 相关类型
+// Job types
 export interface Job {
   id: number;
   title: string;
-  company: string;
-  companyLogo?: string;
   category: JobCategory;
   tags: string[];
   regionLimit: RegionLimit;
-  locationDetail?: string;
   workType: WorkType;
-  salaryCurrency?: string;
-  salaryMin?: number;
-  salaryMax?: number;
-  salaryPeriod?: SalaryPeriod;
   sourceSite: string;
   originalUrl: string;
   description?: string;
@@ -22,7 +15,7 @@ export interface Job {
   updatedAt: Date;
 }
 
-// 岗位类型
+// Job category
 export type JobCategory =
   | 'frontend'
   | 'backend'
@@ -33,16 +26,13 @@ export type JobCategory =
   | 'blockchain'
   | 'unknown';
 
-// 地域限制
+// Region restriction
 export type RegionLimit = 'worldwide' | 'regional' | 'timezone';
 
-// 协作方式
+// Work type
 export type WorkType = 'fulltime' | 'parttime' | 'contract';
 
-// 薪资周期
-export type SalaryPeriod = 'yearly' | 'monthly' | 'hourly';
-
-// API 响应类型
+// API response types
 export interface JobListResponse {
   data: Job[];
   total: number;
@@ -50,7 +40,7 @@ export interface JobListResponse {
   pageSize: number;
 }
 
-// 筛选参数
+// Filter parameters
 export interface JobFilters {
   category?: JobCategory;
   regionLimit?: RegionLimit;

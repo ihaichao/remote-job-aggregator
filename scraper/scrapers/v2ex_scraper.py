@@ -72,21 +72,31 @@ class V2EXScraper:
         for topic in data.get('result', []):
             title = topic.get('title', '')
 
+            # Skip internship jobs
+            if any(kw in title.lower() for kw in ['实习', 'intern', 'internship']):
+                continue
+
             # For 'jobs' node, filter for remote keywords
             # For 'remote' node, all jobs are remote by definition
             if node == 'jobs' and not any(kw in title for kw in self.REMOTE_KEYWORDS):
                 continue
 
+            # Skip jobs not related to software development
+            content = topic.get('content', '')
+            full_text = title + ' ' + content
+            if not self._is_dev_related(full_text):
+                continue
+
             job = {
                 'source_id': str(topic['id']),
                 'title': title,
-                'company': self._extract_company(title, topic.get('content', '')),
-                'category': self._extract_category(title + ' ' + topic.get('content', '')),
-                'region_limit': self._extract_region(title + ' ' + topic.get('content', '')),
-                'work_type': self._extract_work_type(title + ' ' + topic.get('content', '')),
+                'company': self._extract_company(title, content),
+                'category': self._extract_category(title, content),
+                'region_limit': self._extract_region(full_text),
+                'work_type': self._extract_work_type(full_text),
                 'source_site': 'v2ex',
                 'original_url': topic.get('url', f"https://www.v2ex.com/t/{topic['id']}"),
-                'description': topic.get('content', ''),
+                'description': content,
                 'date_posted': self._timestamp_to_iso(topic.get('created')),
             }
             jobs.append(job)
@@ -110,8 +120,16 @@ class V2EXScraper:
 
             title = title_elem.text.strip()
 
+            # Skip internship jobs
+            if any(kw in title.lower() for kw in ['实习', 'intern', 'internship']):
+                continue
+
             # For 'jobs' node, filter for remote keywords
             if node == 'jobs' and not any(kw in title for kw in self.REMOTE_KEYWORDS):
+                continue
+
+            # Skip jobs not related to software development
+            if not self._is_dev_related(title):
                 continue
 
             author_elem = cell.select_one('strong a')
@@ -153,36 +171,116 @@ class V2EXScraper:
 
         return 'Unknown'
 
-    def _extract_category(self, text: str) -> str:
-        """Extract job category from text"""
-        text_lower = text.lower()
+    def _extract_category(self, title: str, description: str = '') -> str:
+        """Extract job category from title and description.
+        Title has higher priority than description.
+        More specific categories (mobile, blockchain) are checked first.
+        """
+        title_lower = title.lower()
+        desc_lower = description.lower()
+        
+        # Order matters: more specific categories first
         keywords = {
-            'frontend': ['前端', 'frontend', 'react', 'vue', 'angular', 'js', 'javascript', 'typescript', 'css', 'web前端'],
-            'backend': ['后端', 'backend', 'go', 'golang', 'java', 'python', 'php', 'ruby', 'rust', 'node', 'c++', 'c#', '服务端'],
+            'mobile': ['移动', 'mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin', 'app开发', 'dart'],
+            'blockchain': ['blockchain', '区块链', 'web3', 'solidity', 'crypto', 'defi', 'smart contract'],
+            'ai': ['ai', 'ml', 'machine learning', '机器学习', '人工智能', 'data scientist', 'nlp', '算法', 'deep learning', 'pytorch', 'tensorflow'],
+            'devops': ['devops', 'sre', 'infrastructure', '运维', 'kubernetes', 'k8s', 'docker', '云原生', 'aws', 'azure', 'gcp'],
             'fullstack': ['全栈', 'fullstack', 'full-stack', 'full stack'],
-            'mobile': ['移动', 'mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin', 'app开发'],
-            'devops': ['devops', 'sre', 'infrastructure', '运维', 'kubernetes', 'k8s', 'docker', '云原生'],
-            'ai': ['ai', 'ml', 'machine learning', '机器学习', '人工智能', 'data scientist', 'nlp', '算法'],
-            'blockchain': ['blockchain', '区块链', 'web3', 'solidity', 'crypto', 'defi'],
+            'frontend': ['前端', 'frontend', 'react', 'vue', 'angular', 'javascript', 'typescript', 'css', 'web前端'],
+            'backend': ['后端', 'backend', 'go', 'golang', 'java', 'python', 'php', 'ruby', 'rust', 'node', 'c++', 'c#', '服务端', 'spring', 'django', 'fastapi'],
         }
 
+        # Check title first (higher priority)
         for category, terms in keywords.items():
-            if any(term in text_lower for term in terms):
+            if any(term in title_lower for term in terms):
+                return category
+
+        # Then check description
+        for category, terms in keywords.items():
+            if any(term in desc_lower for term in terms):
                 return category
 
         return 'unknown'
 
+    def _is_dev_related(self, text: str) -> bool:
+        """Check if job is related to software development"""
+        text_lower = text.lower()
+        
+        # Software development related keywords
+        dev_keywords = [
+            # Languages
+            'python', 'java', 'javascript', 'typescript', 'go', 'golang', 'rust', 'c++', 'c#', 'ruby', 'php', 'swift', 'kotlin',
+            # Frontend
+            '前端', 'frontend', 'react', 'vue', 'angular', 'css', 'html', 'web',
+            # Backend
+            '后端', 'backend', 'api', '服务端', 'server', 'microservice',
+            # Mobile
+            'ios', 'android', 'flutter', 'mobile', '移动', 'app',
+            # Database
+            'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'database', '数据库',
+            # DevOps/Infra
+            'devops', 'sre', 'kubernetes', 'k8s', 'docker', 'aws', 'azure', 'gcp', 'cloud', '运维', '云',
+            # AI/ML
+            'ai', 'ml', 'machine learning', '机器学习', '算法', 'data scientist', 'nlp', 'tensorflow', 'pytorch',
+            # Blockchain
+            'blockchain', '区块链', 'web3', 'solidity', 'smart contract',
+            # General dev terms
+            '开发', 'developer', 'engineer', 'programmer', '程序员', '工程师', 'software', 'coding', 'code',
+            '架构', 'architect', '全栈', 'fullstack', 'tech', '技术',
+            # Testing
+            '测试', 'qa', 'test', 'automation',
+            # Security
+            '安全', 'security', 'penetration', '渗透',
+        ]
+        
+        return any(kw in text_lower for kw in dev_keywords)
+
     def _extract_region(self, text: str) -> str:
-        """Extract region restriction from text"""
+        """Extract specific region/timezone restriction from text"""
         text_lower = text.lower()
 
-        if any(word in text_lower for word in ['全球', 'worldwide', 'global', 'anywhere', '不限地区']):
-            return 'worldwide'
-        elif any(word in text_lower for word in ['国内', '仅限中国', '中国地区', '大湾区']):
-            return 'regional'
-        elif any(word in text_lower for word in ['时区', 'timezone', 'utc']):
-            return 'timezone'
+        # Check for specific country/region mentions
+        # United States
+        if any(word in text_lower for word in ['usa', 'us only', 'united states', 'america only', '美国']):
+            return 'US'
+        
+        # Europe
+        if any(word in text_lower for word in ['europe', 'eu only', 'european', 'uk only', 'emea', '欧洲']):
+            return 'EU'
+        
+        # China
+        if any(word in text_lower for word in ['国内', '仅限中国', '中国地区', '大陆', 'china only']):
+            return 'CN'
+        
+        # Asia-Pacific (use word boundary to avoid matching 'Apache')
+        import re
+        if re.search(r'\b(asia|apac|asia-pacific)\b', text_lower) or '亚太' in text_lower or 'southeast asia' in text_lower:
+            return 'APAC'
+        
+        # Check for timezone mentions
+        import re
+        # Match patterns like UTC+8, UTC-5, GMT+8
+        tz_pattern = r'(utc|gmt)\s*([+-]\d{1,2})'
+        tz_match = re.search(tz_pattern, text_lower)
+        if tz_match:
+            offset = tz_match.group(2)
+            return f'UTC{offset}'
+        
+        # Match named timezones
+        if 'pst' in text_lower or 'pacific time' in text_lower:
+            return 'UTC-8'
+        if 'est' in text_lower or 'eastern time' in text_lower:
+            return 'UTC-5'
+        if 'cst' in text_lower and '中国' not in text_lower:  # CST can be US Central or China
+            return 'UTC-6'
+        if '北京时间' in text_lower or '东八区' in text_lower:
+            return 'UTC+8'
 
+        # Check for worldwide indicators (no restriction)
+        if any(word in text_lower for word in ['全球', 'worldwide', 'global', 'anywhere', '不限地区', 'remote friendly']):
+            return 'worldwide'
+
+        # Default to worldwide if no specific region found
         return 'worldwide'
 
     def _extract_work_type(self, text: str) -> str:

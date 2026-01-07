@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '远程工作聚合平台 - 软件开发职位',
-  description: '汇聚全网远程开发职位，支持按技术栈、地域、协作方式筛选',
+  title: 'Remote Job Aggregator - Find Remote Software Jobs',
+  description: 'Aggregating remote software development jobs from V2EX, RemoteOK, and more.',
 }
 
 export default function RootLayout({
@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
-      <body>{children}</body>
+    <html lang="en">
+      <body className="antialiased">{children}</body>
     </html>
   )
 }
