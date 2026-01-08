@@ -176,28 +176,48 @@ class V2EXScraper:
         Title has higher priority than description.
         More specific categories (mobile, blockchain) are checked first.
         """
+        import re
         title_lower = title.lower()
         desc_lower = description.lower()
         
-        # Order matters: more specific categories first
+        # Order matters: core roles first, then modifiers
+        # Keywords prefixed with \b need word boundary matching
         keywords = {
-            'mobile': ['移动', 'mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin', 'app开发', 'dart'],
-            'blockchain': ['blockchain', '区块链', 'web3', 'solidity', 'crypto', 'defi', 'smart contract'],
-            'ai': ['ai', 'ml', 'machine learning', '机器学习', '人工智能', 'data scientist', 'nlp', '算法', 'deep learning', 'pytorch', 'tensorflow'],
-            'devops': ['devops', 'sre', 'infrastructure', '运维', 'kubernetes', 'k8s', 'docker', '云原生', 'aws', 'azure', 'gcp'],
+            # Core development roles (check first)
+            'frontend': ['前端', 'frontend', 'web前端'],
+            'backend': ['后端', 'backend', '服务端', 'server'],
             'fullstack': ['全栈', 'fullstack', 'full-stack', 'full stack'],
-            'frontend': ['前端', 'frontend', 'react', 'vue', 'angular', 'javascript', 'typescript', 'css', 'web前端'],
-            'backend': ['后端', 'backend', 'go', 'golang', 'java', 'python', 'php', 'ruby', 'rust', 'node', 'c++', 'c#', '服务端', 'spring', 'django', 'fastapi'],
+            'mobile': ['移动开发', r'\bios开发', r'\bandroid开发', 'flutter', 'react native', 'app开发'],
+            # Specialized roles
+            'security': ['安全', 'security', '渗透', 'penetration', 'red team', '攻防', 'infosec', '漏洞', 'vulnerability'],
+            'design': ['ux', 'ui', '设计师', 'designer', 'figma', 'sketch', '交互设计', '视觉设计'],
+            'quant': ['量化', 'quantitative', '风控开发', 'trading'],
+            'devops': ['devops', r'\bsre\b', '运维', 'kubernetes', r'\bk8s\b', 'docker', '云原生'],
+            # Tech stack modifiers (check last, only if no core role found)
+            'blockchain': ['blockchain', '区块链', 'web3', 'solidity', 'smart contract'],
+            'ai': ['machine learning', '机器学习', '人工智能', 'data scientist', r'\bnlp\b', '算法工程师', 'deep learning', 'pytorch', 'tensorflow'],
         }
+
+        def match_keywords(text: str, terms: list) -> bool:
+            for term in terms:
+                if term.startswith(r'\b'):
+                    # Use regex for word boundary matching
+                    if re.search(term, text):
+                        return True
+                else:
+                    # Simple substring matching
+                    if term in text:
+                        return True
+            return False
 
         # Check title first (higher priority)
         for category, terms in keywords.items():
-            if any(term in title_lower for term in terms):
+            if match_keywords(title_lower, terms):
                 return category
 
         # Then check description
         for category, terms in keywords.items():
-            if any(term in desc_lower for term in terms):
+            if match_keywords(desc_lower, terms):
                 return category
 
         return 'unknown'
@@ -236,49 +256,61 @@ class V2EXScraper:
         return any(kw in text_lower for kw in dev_keywords)
 
     def _extract_region(self, text: str) -> str:
-        """Extract specific region/timezone restriction from text"""
+        """Extract specific region/timezone restriction from text.
+        Only match when there's an EXPLICIT region requirement, not just keyword presence.
+        """
+        import re
         text_lower = text.lower()
 
-        # Check for specific country/region mentions
-        # United States
-        if any(word in text_lower for word in ['usa', 'us only', 'united states', 'america only', '美国']):
+        # Explicit region restriction patterns (more strict matching)
+        # US restrictions
+        us_patterns = [
+            r'\bus\s*only\b', r'\busa\s*only\b', r'\bus\s*based\b', r'\bus\s*residents?\b',
+            r'united\s+states\s+only', r'america\s+only', r'仅限美国', r'美国地区',
+        ]
+        if any(re.search(p, text_lower) for p in us_patterns):
             return 'US'
         
-        # Europe
-        if any(word in text_lower for word in ['europe', 'eu only', 'european', 'uk only', 'emea', '欧洲']):
+        # EU restrictions
+        eu_patterns = [
+            r'\beu\s*only\b', r'\beurope\s*only\b', r'\beuropean\s+only\b', 
+            r'\beu\s*based\b', r'\beurope\s*based\b', r'\bemea\s*only\b',
+            r'仅限欧洲', r'欧洲地区',
+        ]
+        if any(re.search(p, text_lower) for p in eu_patterns):
             return 'EU'
         
-        # China
-        if any(word in text_lower for word in ['国内', '仅限中国', '中国地区', '大陆', 'china only']):
+        # China restrictions
+        cn_patterns = [
+            r'仅限中国', r'中国地区', r'仅限国内', r'国内地区', r'限中国大陆',
+            r'\bchina\s*only\b', r'\bchina\s*based\b',
+        ]
+        if any(re.search(p, text_lower) for p in cn_patterns):
             return 'CN'
         
-        # Asia-Pacific (use word boundary to avoid matching 'Apache')
-        import re
-        if re.search(r'\b(asia|apac|asia-pacific)\b', text_lower) or '亚太' in text_lower or 'southeast asia' in text_lower:
+        # APAC restrictions
+        apac_patterns = [
+            r'\bapac\s*only\b', r'\basia\s*only\b', r'\basia[\s-]*pacific\s*only\b',
+            r'仅限亚太', r'亚太地区',
+        ]
+        if any(re.search(p, text_lower) for p in apac_patterns):
             return 'APAC'
         
-        # Check for timezone mentions
-        import re
-        # Match patterns like UTC+8, UTC-5, GMT+8
-        tz_pattern = r'(utc|gmt)\s*([+-]\d{1,2})'
+        # Check for explicit timezone requirements
+        # Match patterns like "UTC+8 required", "需要配合 UTC-5"
+        tz_pattern = r'(utc|gmt)\s*([+-]\d{1,2})\s*(required|时区|工作时间|配合)'
         tz_match = re.search(tz_pattern, text_lower)
         if tz_match:
             offset = tz_match.group(2)
             return f'UTC{offset}'
         
-        # Match named timezones
-        if 'pst' in text_lower or 'pacific time' in text_lower:
+        # Named timezone requirements (only if explicitly required)
+        if re.search(r'\b(pst|pacific\s+time)\s*(required|时区|工作时间)', text_lower):
             return 'UTC-8'
-        if 'est' in text_lower or 'eastern time' in text_lower:
+        if re.search(r'\b(est|eastern\s+time)\s*(required|时区|工作时间)', text_lower):
             return 'UTC-5'
-        if 'cst' in text_lower and '中国' not in text_lower:  # CST can be US Central or China
-            return 'UTC-6'
-        if '北京时间' in text_lower or '东八区' in text_lower:
+        if re.search(r'(北京时间|东八区)\s*(工作|配合|required)', text_lower):
             return 'UTC+8'
-
-        # Check for worldwide indicators (no restriction)
-        if any(word in text_lower for word in ['全球', 'worldwide', 'global', 'anywhere', '不限地区', 'remote friendly']):
-            return 'worldwide'
 
         # Default to worldwide if no specific region found
         return 'worldwide'

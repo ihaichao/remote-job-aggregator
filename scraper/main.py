@@ -16,7 +16,7 @@ import sys
 from datetime import datetime
 from dotenv import load_dotenv
 
-from scrapers import V2EXScraper, RemoteOKScraper
+from scrapers import V2EXScraper
 
 load_dotenv()
 
@@ -25,7 +25,6 @@ async def scrape_all():
     """Run all scrapers and collect jobs"""
     scrapers = [
         ('V2EX', V2EXScraper()),
-        ('RemoteOK', RemoteOKScraper()),
     ]
 
     all_jobs = []

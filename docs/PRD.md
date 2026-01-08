@@ -13,7 +13,7 @@ Remote job opportunities for software developers are scattered across multiple p
 ### 3.1 Job Data Collection (Scraping & Aggregation)
 - **Multi-source Scraping**: Automatically collect job information from the following target sites:
   - Domestic: V2EX (Jobs section), BOSS Zhipin (Remote filter)
-  - International: LinkedIn (Remote filter), Remote.com, RemoteOK, We Work Remotely
+  - International: LinkedIn (Remote filter), Remote.com, We Work Remotely
 - **Data Cleaning & Standardization**: Unify data formats from different sources.
 - **Deduplication**: Identify and merge duplicate job postings from different platforms during frontend display.
 
