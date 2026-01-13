@@ -2,8 +2,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm (Specifying version to match pnpm-lock.yaml)
+RUN npm install -g pnpm@9.2.0
 
 # Copy workspace configuration and lockfile
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
