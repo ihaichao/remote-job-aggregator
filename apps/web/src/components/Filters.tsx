@@ -1,11 +1,17 @@
 'use client';
 
 import { CATEGORY_LABELS, COMMON_REGIONS, WORK_TYPE_LABELS } from '@/lib/constants';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface FiltersProps {
   filters: {
     category: string;
-    regionLimit: string;
     workType: string;
   };
   onChange: (key: string, value: string) => void;
@@ -13,59 +19,49 @@ interface FiltersProps {
 
 export function Filters({ filters, onChange }: FiltersProps) {
   return (
-    <div className="flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg">
+    <div className="flex flex-wrap gap-4 p-4 bg-muted/50 rounded-lg">
       <div className="flex-1 min-w-[150px]">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Category
+        <label className="block text-sm font-medium text-foreground mb-2">
+          职位类型
         </label>
-        <select
-          value={filters.category}
-          onChange={(e) => onChange('category', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        <Select
+          value={filters.category || 'all'}
+          onValueChange={(value) => onChange('category', value === 'all' ? '' : value)}
         >
-          <option value="">All Categories</option>
-          {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder="全部类型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部类型</SelectItem>
+            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex-1 min-w-[150px]">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Region
+        <label className="block text-sm font-medium text-foreground mb-2">
+          工作性质
         </label>
-        <select
-          value={filters.regionLimit}
-          onChange={(e) => onChange('regionLimit', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        <Select
+          value={filters.workType || 'all'}
+          onValueChange={(value) => onChange('workType', value === 'all' ? '' : value)}
         >
-          <option value="">All Regions</option>
-          {Object.entries(COMMON_REGIONS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex-1 min-w-[150px]">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Work Type
-        </label>
-        <select
-          value={filters.workType}
-          onChange={(e) => onChange('workType', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">All Types</option>
-          {Object.entries(WORK_TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder="全部性质" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部性质</SelectItem>
+            {Object.entries(WORK_TYPE_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

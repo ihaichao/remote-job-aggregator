@@ -1,7 +1,7 @@
 'use client';
 
 import { Job } from '@/lib/api';
-import { CATEGORY_LABELS, getRegionLabel, WORK_TYPE_LABELS, SOURCE_LABELS } from '@/lib/constants';
+import { CATEGORY_LABELS, WORK_TYPE_LABELS } from '@/lib/constants';
 
 interface JobCardProps {
   job: Job;
@@ -24,12 +24,11 @@ export function JobCard({ job }: JobCardProps) {
           </h3>
 
           <div className="flex flex-wrap gap-2 mt-2">
+            {/* 职位类型 - 统一使用蓝色系 */}
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               {CATEGORY_LABELS[job.category] || job.category}
             </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              {getRegionLabel(job.regionLimit)}
-            </span>
+            {/* 工作性质 - 统一使用紫色系 */}
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
               {WORK_TYPE_LABELS[job.workType] || job.workType}
             </span>
@@ -50,10 +49,7 @@ export function JobCard({ job }: JobCardProps) {
         </div>
 
         <div className="flex flex-col items-end text-sm text-gray-500 shrink-0">
-          <span className="font-medium text-gray-700">
-            {SOURCE_LABELS[job.sourceSite] || job.sourceSite}
-          </span>
-          <span className="mt-1">{timeAgo}</span>
+          <span>{timeAgo}</span>
         </div>
       </div>
 
@@ -71,10 +67,10 @@ function getTimeAgo(dateString: string): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  if (diffInSeconds < 60) return '刚刚';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} 分钟前`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} 小时前`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} 天前`;
 
-  return date.toLocaleDateString();
+  return date.toLocaleDateString('zh-CN');
 }

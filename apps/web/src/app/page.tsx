@@ -6,11 +6,8 @@ export default function Home() {
       <header className="bg-white shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            Remote Job Aggregator
+            专为中国开发者打造的远程工作聚合平台
           </h1>
-          <p className="text-gray-600 mt-1">
-            Aggregating remote software development jobs from across the web
-          </p>
         </div>
       </header>
 
@@ -20,7 +17,7 @@ export default function Home() {
 
       <footer className="bg-white border-t mt-12">
         <div className="max-w-5xl mx-auto px-4 py-6 text-center text-gray-500 text-sm">
-          Data sources: V2EX, RemoteOK, and more
+          数据来源：V2EX
         </div>
       </footer>
     </main>

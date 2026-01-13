@@ -45,113 +45,92 @@ class V2EXScraper:
         return unique_jobs
 
     async def _scrape_node(self, client: httpx.AsyncClient, node: str) -> List[Dict]:
-        """Scrape a specific V2EX node"""
-        jobs = []
-
-        # Use API if token is available
-        if self.token:
-            jobs = await self._scrape_via_api(client, node)
-        else:
-            jobs = await self._scrape_via_html(client, node)
-
-        return jobs
+        """Scrape a specific V2EX node using API only"""
+        if not self.token:
+            raise ValueError("V2EX_TOKEN is required. Please set the V2EX_TOKEN environment variable.")
+        
+        return await self._scrape_via_api(client, node)
 
     async def _scrape_via_api(self, client: httpx.AsyncClient, node: str) -> List[Dict]:
-        """Scrape using V2EX API v2 (requires token)"""
+        """Scrape using V2EX API v2 (requires token) with pagination"""
+        import asyncio
         jobs = []
+        MAX_PAGES = 10  # Maximum pages to fetch (10 pages * 20 items = 200 jobs max)
 
-        url = f"{self.API_BASE}/nodes/{node}/topics"
-        response = await client.get(url)
-        response.raise_for_status()
-        data = response.json()
+        for page in range(1, MAX_PAGES + 1):
+            url = f"{self.API_BASE}/nodes/{node}/topics?p={page}"
+            
+            try:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = response.json()
+            except Exception as e:
+                print(f"  V2EX page {page} error: {e}")
+                break
 
-        if not data.get('success'):
-            print(f"V2EX API error: {data.get('message')}")
-            return jobs
+            if not data.get('success'):
+                # Page number exceeds limit
+                break
 
-        for topic in data.get('result', []):
-            title = topic.get('title', '')
+            results = data.get('result', [])
+            if not results:
+                break
 
-            # Skip internship jobs
-            if any(kw in title.lower() for kw in ['实习', 'intern', 'internship']):
-                continue
+            for topic in results:
+                title = topic.get('title', '')
 
-            # For 'jobs' node, filter for remote keywords
-            # For 'remote' node, all jobs are remote by definition
-            if node == 'jobs' and not any(kw in title for kw in self.REMOTE_KEYWORDS):
-                continue
+                # Skip internship jobs
+                if any(kw in title.lower() for kw in ['实习', 'intern', 'internship']):
+                    continue
 
-            # Skip jobs not related to software development
-            content = topic.get('content', '')
-            full_text = title + ' ' + content
-            if not self._is_dev_related(full_text):
-                continue
+                # Skip job seeker posts (people looking for work, not job postings)
+                if any(kw in title for kw in ['接活', '求职', '找工作', '求兼职', '寻求', '接单', '接私活', '找兼职', '难找', '想找', '找远程', '在找']):
+                    continue
 
-            job = {
-                'source_id': str(topic['id']),
-                'title': title,
-                'company': self._extract_company(title, content),
-                'category': self._extract_category(title, content),
-                'region_limit': self._extract_region(full_text),
-                'work_type': self._extract_work_type(full_text),
-                'source_site': 'v2ex',
-                'original_url': topic.get('url', f"https://www.v2ex.com/t/{topic['id']}"),
-                'description': content,
-                'date_posted': self._timestamp_to_iso(topic.get('created')),
-            }
-            jobs.append(job)
+                # Skip non-tech roles (operations, marketing, HR, sales, design, SEO, etc.)
+                if any(kw in title.lower() for kw in ['运营', '市场', 'marketing', '销售', 'sales', 'hr', 'hrbp', '人事', '招聘', '客服', 'customer', 'ux', 'ui', '设计师', 'designer', '设计', 'figma', 'sketch', '交互设计', '视觉设计', 'seo']):
+                    continue
+
+                # Skip jobs not related to software development
+                content = topic.get('content', '')
+                full_text = title + ' ' + content
+                if not self._is_dev_related(full_text):
+                    continue
+
+                # Filter for remote keywords in title or content (applies to all nodes)
+                if not any(kw in full_text for kw in self.REMOTE_KEYWORDS):
+                    continue
+
+                category = self._extract_category(title, content)
+                
+                # Skip jobs with unknown category
+                if category == 'unknown':
+                    continue
+
+                job = {
+                    'source_id': str(topic['id']),
+                    'title': title,
+                    'company': self._extract_company(title, content),
+                    'category': category,
+                    'region_limit': self._extract_region(full_text),
+                    'work_type': self._extract_work_type(full_text),
+                    'source_site': 'v2ex',
+                    'original_url': topic.get('url', f"https://www.v2ex.com/t/{topic['id']}"),
+                    'description': content,
+                    'date_posted': self._timestamp_to_iso(topic.get('created')),
+                }
+                jobs.append(job)
+
+            # If less than 20 results, no more pages
+            if len(results) < 20:
+                break
+            
+            # Rate limiting between pages
+            await asyncio.sleep(0.5)
 
         return jobs
 
-    async def _scrape_via_html(self, client: httpx.AsyncClient, node: str) -> List[Dict]:
-        """Fallback: Scrape via HTML parsing (no token required)"""
-        from bs4 import BeautifulSoup
-        jobs = []
 
-        url = f"https://www.v2ex.com/go/{node}"
-        response = await client.get(url)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        for cell in soup.select('#TopicsNode .cell'):
-            title_elem = cell.select_one('a.topic-link')
-            if not title_elem:
-                continue
-
-            title = title_elem.text.strip()
-
-            # Skip internship jobs
-            if any(kw in title.lower() for kw in ['实习', 'intern', 'internship']):
-                continue
-
-            # For 'jobs' node, filter for remote keywords
-            if node == 'jobs' and not any(kw in title for kw in self.REMOTE_KEYWORDS):
-                continue
-
-            # Skip jobs not related to software development
-            if not self._is_dev_related(title):
-                continue
-
-            author_elem = cell.select_one('strong a')
-            company = author_elem.text.strip() if author_elem else 'Unknown'
-
-            href = title_elem.get('href', '')
-            topic_id = href.split('/t/')[-1].split('#')[0] if '/t/' in href else ''
-
-            job = {
-                'source_id': topic_id,
-                'title': title,
-                'company': company,
-                'category': self._extract_category(title),
-                'region_limit': self._extract_region(title),
-                'work_type': self._extract_work_type(title),
-                'source_site': 'v2ex',
-                'original_url': f"https://www.v2ex.com{href}" if href.startswith('/') else href,
-                'description': '',
-            }
-            jobs.append(job)
-
-        return jobs
 
     def _extract_company(self, title: str, content: str) -> str:
         """Try to extract company name from title or content"""
@@ -173,51 +152,70 @@ class V2EXScraper:
 
     def _extract_category(self, title: str, description: str = '') -> str:
         """Extract job category from title and description.
-        Title has higher priority than description.
-        More specific categories (mobile, blockchain) are checked first.
+        For titles with multiple roles, use the first matching keyword position.
         """
         import re
         title_lower = title.lower()
         desc_lower = description.lower()
         
-        # Order matters: core roles first, then modifiers
-        # Keywords prefixed with \b need word boundary matching
+        # Keywords for each category
+        # Core roles checked first, then specialized roles
         keywords = {
-            # Core development roles (check first)
             'frontend': ['前端', 'frontend', 'web前端'],
-            'backend': ['后端', 'backend', '服务端', 'server'],
+            'backend': ['后端', 'backend', '服务端', 'server', r'\bjava\b', r'\bphp\b', r'\bgolang\b', r'\bgo\b', 'python', 'ruby', 'rust', '架构师'],
             'fullstack': ['全栈', 'fullstack', 'full-stack', 'full stack'],
-            'mobile': ['移动开发', r'\bios开发', r'\bandroid开发', 'flutter', 'react native', 'app开发'],
-            # Specialized roles
-            'security': ['安全', 'security', '渗透', 'penetration', 'red team', '攻防', 'infosec', '漏洞', 'vulnerability'],
-            'design': ['ux', 'ui', '设计师', 'designer', 'figma', 'sketch', '交互设计', '视觉设计'],
+            'mobile': ['移动开发', r'\bios\b', r'\bandroid\b', 'flutter', 'react native', 'app开发', '安卓'],
+            # Game category: only match specific game engine/role keywords, not generic '游戏'
+            'game': ['cocos', 'unity', 'unreal', 'ue4', 'ue5', '游戏客户端', 'game dev', '游戏引擎'],
+            'security': ['安全', 'security', '渗透', 'penetration', 'red team', '攻防', 'infosec', '漏洞'],
             'quant': ['量化', 'quantitative', '风控开发', 'trading'],
             'devops': ['devops', r'\bsre\b', '运维', 'kubernetes', r'\bk8s\b', 'docker', '云原生'],
-            # Tech stack modifiers (check last, only if no core role found)
-            'blockchain': ['blockchain', '区块链', 'web3', 'solidity', 'smart contract'],
-            'ai': ['machine learning', '机器学习', '人工智能', 'data scientist', r'\bnlp\b', '算法工程师', 'deep learning', 'pytorch', 'tensorflow'],
+            'blockchain': ['blockchain', '区块链', 'web3', 'solidity', 'smart contract', '合约', '撮合交易'],
+            'ai': ['machine learning', '机器学习', '人工智能', 'data scientist', r'\bnlp\b', '算法工程师', 'deep learning'],
         }
 
-        def match_keywords(text: str, terms: list) -> bool:
+        def find_first_match_pos(text: str, terms: list) -> int:
+            """Find the earliest position where any term matches. Returns -1 if no match."""
+            min_pos = -1
             for term in terms:
                 if term.startswith(r'\b'):
-                    # Use regex for word boundary matching
-                    if re.search(term, text):
-                        return True
+                    # Regex matching
+                    match = re.search(term, text)
+                    if match:
+                        pos = match.start()
+                        if min_pos == -1 or pos < min_pos:
+                            min_pos = pos
                 else:
                     # Simple substring matching
-                    if term in text:
-                        return True
-            return False
+                    pos = text.find(term)
+                    if pos != -1 and (min_pos == -1 or pos < min_pos):
+                        min_pos = pos
+            return min_pos
 
-        # Check title first (higher priority)
+        # Find all matching categories and their first match position in title
+        title_matches = []
+        
+        # Priority categories - if any of these match, use them directly
+        # These are explicit job role descriptions that should take precedence
+        priority_categories = ['fullstack', 'game', 'quant', 'security', 'blockchain', 'ai', 'devops']
+        
         for category, terms in keywords.items():
-            if match_keywords(title_lower, terms):
-                return category
+            pos = find_first_match_pos(title_lower, terms)
+            if pos != -1:
+                # Priority categories get a very low position to ensure they win
+                if category in priority_categories:
+                    title_matches.append((-1000 + priority_categories.index(category), category))
+                else:
+                    title_matches.append((pos, category))
+        
+        # Return the category with earliest match position
+        if title_matches:
+            title_matches.sort(key=lambda x: x[0])
+            return title_matches[0][1]
 
-        # Then check description
+        # Fall back to description
         for category, terms in keywords.items():
-            if match_keywords(desc_lower, terms):
+            if find_first_match_pos(desc_lower, terms) != -1:
                 return category
 
         return 'unknown'
@@ -319,13 +317,12 @@ class V2EXScraper:
         """Extract work type from text"""
         text_lower = text.lower()
 
-        if any(word in text_lower for word in ['兼职', 'part-time', 'part time', 'parttime']):
+        # Part-time keywords
+        if any(word in text_lower for word in ['兼职', 'part-time', 'part time', 'parttime', 'freelance', '自由职业']):
             return 'parttime'
-        elif any(word in text_lower for word in ['合同', 'contract', '外包', 'freelance', '项目制']):
-            return 'contract'
-        elif any(word in text_lower for word in ['实习', 'intern', 'internship']):
-            return 'contract'
-
+        
+        # Everything else is full-time or defaults to full-time
+        # (V2EX jobs are majority full-time unless specified)
         return 'fulltime'
 
     def _timestamp_to_iso(self, timestamp: int) -> str:
