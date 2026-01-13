@@ -2,11 +2,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+# Use root package.json for workspace info if needed, but for now focus on the app
+COPY apps/backend/package*.json ./
 RUN npm ci
 
-COPY . .
-COPY ../prisma ./prisma
+COPY apps/backend/ ./
+COPY apps/backend/prisma ./prisma
 
 RUN npx prisma generate
 RUN npm run build

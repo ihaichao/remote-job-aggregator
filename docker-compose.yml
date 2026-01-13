@@ -39,8 +39,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
     container_name: remote-jobs-backend
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs?schema=public
@@ -58,7 +58,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/web
       dockerfile: Dockerfile
     container_name: remote-jobs-frontend
     environment:
@@ -77,6 +77,7 @@ services:
     container_name: remote-jobs-scraper
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs
+      V2EX_TOKEN: ${V2EX_TOKEN}
     depends_on:
       - postgres
     networks:
