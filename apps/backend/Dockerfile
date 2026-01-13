@@ -2,25 +2,41 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Use root package.json for workspace info if needed, but for now focus on the app
-COPY apps/backend/package*.json ./
-RUN npm ci
+# Install pnpm
+RUN npm install -g pnpm
 
-COPY apps/backend/ ./
-COPY apps/backend/prisma ./prisma
+# Copy workspace configuration and lockfile
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
+# Copy all package.json files to allow pnpm to resolve dependencies first
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
+
+# Install dependencies (frozen-lockfile ensures it matches local version)
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY apps/backend ./apps/backend
+COPY packages/shared ./packages/shared
+
+# Build backend (dependency on shared is handled by pnpm)
+WORKDIR /app/apps/backend
 RUN npx prisma generate
-RUN npm run build
+RUN pnpm run build
 
 FROM node:20-alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
+# Install pnpm for runtime if needed or just use node
+COPY --from=builder /app/apps/backend/dist ./dist
+COPY --from=builder /app/apps/backend/node_modules ./node_modules
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=builder /app/apps/backend/package.json ./
+COPY --from=builder /app/apps/backend/prisma ./prisma
 
 EXPOSE 4000
 
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/main"]

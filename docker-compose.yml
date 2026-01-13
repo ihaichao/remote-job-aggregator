@@ -58,8 +58,8 @@ services:
 
   frontend:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     container_name: remote-jobs-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://backend:4000/api
