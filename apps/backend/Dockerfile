@@ -2,6 +2,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install system dependencies for Prisma
+RUN apk add --no-cache openssl openssl-dev libc6-compat
+
 # Install pnpm
 RUN npm install -g pnpm@9.2.0
 
@@ -25,15 +28,18 @@ WORKDIR /app/apps/backend
 RUN npx prisma generate
 RUN pnpm run build
 
-# Production stage - use same image to keep pnpm structure intact
+# Production stage
 FROM node:20-alpine
 
 WORKDIR /app
 
+# Install system dependencies for Prisma runtime
+RUN apk add --no-cache openssl libc6-compat
+
 # Install pnpm for production
 RUN npm install -g pnpm@9.2.0
 
-# Copy entire workspace (simpler approach for pnpm)
+# Copy entire workspace
 COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/backend ./apps/backend
