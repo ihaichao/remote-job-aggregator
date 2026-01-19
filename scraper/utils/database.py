@@ -11,60 +11,64 @@ class DatabaseClient:
 
     def insert_job(self, job_data: Dict) -> Optional[int]:
         """Insert job data, return job_id"""
-        content_hash = self._generate_hash(job_data)
+        try:
+            content_hash = self._generate_hash(job_data)
 
-        # Check if already exists by content hash
-        self.cursor.execute("SELECT id FROM jobs WHERE content_hash = %s", (content_hash,))
-        if self.cursor.fetchone():
-            return None
+            # Check if already exists by content hash
+            self.cursor.execute("SELECT id FROM jobs WHERE content_hash = %s", (content_hash,))
+            if self.cursor.fetchone():
+                return None
 
-        # Check for similar job from same source within last 30 days
-        if self._is_similar_exists(job_data):
-            return None
+            # Check for similar job from same source within last 30 days
+            if self._is_similar_exists(job_data):
+                return None
 
-        now = datetime.now()
+            now = datetime.now()
 
-        query = """
-        INSERT INTO jobs (
-            title, category, tags, region_limit, work_type,
-            source_site, original_url, content_hash, description,
-            date_posted, date_scraped, is_active, created_at, updated_at
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """
+            query = """
+            INSERT INTO jobs (
+                title, category, tags, region_limit, work_type,
+                source_site, original_url, content_hash, description,
+                date_posted, date_scraped, is_active, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """
 
-        # Parse date_posted if it's a string
-        date_posted = job_data.get('date_posted')
-        if isinstance(date_posted, str):
-            try:
-                date_posted = datetime.fromisoformat(date_posted.replace('Z', '+00:00'))
-            except:
-                date_posted = now
+            # Parse date_posted if it's a string
+            date_posted = job_data.get('date_posted')
+            if isinstance(date_posted, str):
+                try:
+                    date_posted = datetime.fromisoformat(date_posted.replace('Z', '+00:00'))
+                except:
+                    date_posted = now
 
-        # Handle tags
-        tags = job_data.get('tags', [])
-        if not isinstance(tags, list):
-            tags = []
+            # Handle tags
+            tags = job_data.get('tags', [])
+            if not isinstance(tags, list):
+                tags = []
 
-        self.cursor.execute(query, (
-            job_data['title'][:255],
-            job_data.get('category', 'unknown')[:50],
-            tags,
-            job_data.get('region_limit', 'worldwide')[:50],
-            job_data.get('work_type', 'fulltime')[:50],
-            job_data['source_site'][:50],
-            job_data['original_url'],
-            content_hash,
-            job_data.get('description', ''),
-            date_posted,
-            now,  # date_scraped
-            True,  # is_active
-            now,  # created_at
-            now,  # updated_at
-        ))
+            self.cursor.execute(query, (
+                job_data['title'][:255],
+                job_data.get('category', 'unknown')[:50],
+                tags,
+                job_data.get('region_limit', 'worldwide')[:50],
+                job_data.get('work_type', 'fulltime')[:50],
+                job_data['source_site'][:50],
+                job_data['original_url'],
+                content_hash,
+                job_data.get('description', ''),
+                date_posted,
+                now,  # date_scraped
+                True,  # is_active
+                now,  # created_at
+                now,  # updated_at
+            ))
 
-        self.conn.commit()
-        return self.cursor.fetchone()[0]
+            self.conn.commit()
+            return self.cursor.fetchone()[0]
+        except Exception as e:
+            self.conn.rollback()
+            raise e
 
     def _normalize_text(self, text: str) -> str:
         """Normalize text for comparison by removing whitespace and common variations"""
