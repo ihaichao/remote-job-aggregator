@@ -25,7 +25,7 @@ COPY packages/shared ./packages/shared
 
 # Generate Prisma client and build
 WORKDIR /app/apps/backend
-RUN npx prisma generate
+# RUN npx prisma generate
 RUN pnpm run build
 
 # Production stage

@@ -62,7 +62,7 @@ services:
         condition: service_started
     networks:
       - app-network
-    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:prod"
 
   frontend:
     build:
