@@ -87,7 +87,8 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs
       V2EX_TOKEN: ${V2EX_TOKEN}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
     command: sh -c "while true; do python main.py && sleep 3600; done"
