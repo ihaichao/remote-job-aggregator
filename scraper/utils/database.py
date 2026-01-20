@@ -27,10 +27,10 @@ class DatabaseClient:
 
             query = """
             INSERT INTO jobs (
-                title, category, tags, region_limit, work_type,
+                title, company, category, tags, region_limit, work_type,
                 source_site, original_url, content_hash, description,
                 date_posted, date_scraped, is_active, created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """
 
@@ -49,6 +49,7 @@ class DatabaseClient:
 
             self.cursor.execute(query, (
                 job_data['title'][:255],
+                job_data.get('company', 'Unknown')[:255],
                 job_data.get('category', 'unknown')[:50],
                 tags,
                 job_data.get('region_limit', 'worldwide')[:50],
