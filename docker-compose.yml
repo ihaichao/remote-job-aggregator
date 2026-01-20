@@ -4,10 +4,8 @@ services:
     container_name: remote-jobs-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: remote_jobs
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,8 +19,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: remote-jobs-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -32,9 +28,7 @@ services:
     image: getmeili/meilisearch:v1.6
     container_name: remote-jobs-meilisearch
     environment:
-      MEILI_MASTER_KEY: masterKey
-    ports:
-      - "7700:7700"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     volumes:
       - meilisearch_data:/meili_data
     networks:
@@ -46,7 +40,7 @@ services:
       dockerfile: apps/backend/Dockerfile
     container_name: remote-jobs-backend
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs?schema=public
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs?schema=public
       REDIS_URL: redis://redis:6379
       MEILISEARCH_URL: http://meilisearch:7700
     ports:
@@ -82,7 +76,7 @@ services:
       dockerfile: Dockerfile
     container_name: remote-jobs-scraper
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/remote_jobs
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs
       V2EX_TOKEN: ${V2EX_TOKEN}
     depends_on:
       postgres:
