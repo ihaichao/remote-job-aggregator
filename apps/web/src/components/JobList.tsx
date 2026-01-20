@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from '@/components/ui/pagination';
+import { Loader2, Briefcase } from 'lucide-react';
 
 export function JobList() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -52,16 +53,16 @@ export function JobList() {
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setPage(1); // Reset to first page when filters change
+    setPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && pagination && newPage <= pagination.totalPages) {
       setPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Generate page numbers to display
   const getPageNumbers = () => {
     if (!pagination) return [];
     
@@ -70,19 +71,16 @@ export function JobList() {
     const pages: (number | 'ellipsis')[] = [];
     
     if (totalPages <= 7) {
-      // Show all pages if 7 or less
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
       
       if (current > 3) {
         pages.push('ellipsis');
       }
       
-      // Show pages around current
       const start = Math.max(2, current - 1);
       const end = Math.min(totalPages - 1, current + 1);
       
@@ -94,7 +92,6 @@ export function JobList() {
         pages.push('ellipsis');
       }
       
-      // Always show last page
       pages.push(totalPages);
     }
     
@@ -106,25 +103,43 @@ export function JobList() {
       <Filters filters={filters} onChange={handleFilterChange} />
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Loader2 className="h-8 w-8 text-accent animate-spin" />
+          <p className="text-sm text-muted-foreground">正在加载职位...</p>
         </div>
       ) : error ? (
-        <div className="text-center py-12 text-destructive">{error}</div>
+        <div className="text-center py-16">
+          <p className="text-destructive">{error}</p>
+        </div>
       ) : jobs.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          暂无相关职位，请尝试调整筛选条件
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+            <Briefcase className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="text-center">
+            <p className="text-foreground font-medium">暂无相关职位</p>
+            <p className="text-sm text-muted-foreground mt-1">请尝试调整筛选条件</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            共 {pagination?.total} 个职位，当前显示第 {(page - 1) * 10 + 1}-{Math.min(page * 10, pagination?.total || 0)} 个
-          </p>
-          {jobs.map((job) => (
-            <JobCard key={job.id} job={job} />
-          ))}
+          {/* Results count */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              共 <span className="font-medium text-foreground">{pagination?.total}</span> 个职位
+              <span className="mx-1.5">·</span>
+              显示第 {(page - 1) * 10 + 1}-{Math.min(page * 10, pagination?.total || 0)} 个
+            </p>
+          </div>
 
-          {/* Pagination Controls */}
+          {/* Job cards */}
+          <div className="grid gap-4">
+            {jobs.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </div>
+
+          {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <Pagination className="pt-6">
               <PaginationContent>
