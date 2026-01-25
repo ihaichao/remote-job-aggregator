@@ -63,7 +63,7 @@ cd scraper && pip install -r requirements.txt
 
 ```bash
 # Start database services
-docker-compose up -d postgres redis meilisearch
+docker compose up -d postgres redis meilisearch
 
 # Run database migrations
 pnpm prisma:migrate
@@ -101,13 +101,13 @@ pnpm clean                  # Clean build artifacts
 
 ```bash
 # Build and start all services
-docker-compose up -d --build
+docker compose up -d --build
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop services
-docker-compose down
+docker compose down
 ```
 
 ## Data Sources
