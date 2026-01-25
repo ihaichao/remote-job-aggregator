@@ -16,15 +16,21 @@ import sys
 from datetime import datetime
 from dotenv import load_dotenv
 
-from scrapers import V2EXScraper
+from scrapers import V2EXScraper, RWFAScraper
 
-load_dotenv()
+# Load .env from root directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+
+# Construct DATABASE_URL if not set (for local development)
+if not os.getenv('DATABASE_URL') and os.getenv('POSTGRES_PASSWORD'):
+    os.environ['DATABASE_URL'] = f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/remote_jobs"
 
 
 async def scrape_all():
     """Run all scrapers and collect jobs"""
     scrapers = [
         ('V2EX', V2EXScraper()),
+        ('RWFA', RWFAScraper()),
     ]
 
     all_jobs = []

@@ -310,8 +310,8 @@ class V2EXScraper:
         if re.search(r'(北京时间|东八区)\s*(工作|配合|required)', text_lower):
             return 'UTC+8'
 
-        # Default to worldwide if no specific region found
-        return 'worldwide'
+        # Default to china for V2EX jobs (Chinese job board)
+        return 'CN'
 
     def _extract_work_type(self, text: str) -> str:
         """Extract work type from text"""

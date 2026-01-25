@@ -51,10 +51,10 @@ export default function Home() {
               <div className="h-8 w-8 rounded-lg gradient-bg flex items-center justify-center">
                 <Briefcase className="h-4 w-4 text-white" />
               </div>
-              <span className="font-semibold text-background">Remote Job Aggregator</span>
+              <span className="font-semibold text-background">Remote Jobs for Chinese Developers</span>
             </div>
             <p className="text-sm text-background/60">
-              数据来源：V2EX · 聚合优质远程工作机会
+              数据来源：V2EX · Real Work From Anywhere
             </p>
           </div>
         </div>

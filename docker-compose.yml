@@ -83,7 +83,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    command: sh -c "while true; do python main.py && sleep 3600; done"
+    restart: unless-stopped
 
   nginx:
     image: nginx:alpine

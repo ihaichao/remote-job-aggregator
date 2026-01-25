@@ -13,8 +13,6 @@ export const CATEGORY_LABELS: Record<string, string> = {
 
 export const COMMON_REGIONS: Record<string, string> = {
   worldwide: '🌍 全球',
-  US: '🇺🇸 美国',
-  EU: '🇪🇺 欧洲',
   CN: '🇨🇳 中国',
 };
 
@@ -39,6 +37,7 @@ export const WORK_TYPE_LABELS: Record<string, string> = {
 
 export const SOURCE_LABELS: Record<string, string> = {
   v2ex: 'V2EX',
+  rwfa: 'RWFA',
   remoteok: 'RemoteOK',
   weworkremotely: 'WeWorkRemotely',
   linkedin: 'LinkedIn',

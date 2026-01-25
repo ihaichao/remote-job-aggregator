@@ -32,16 +32,6 @@ export function JobCard({ job }: JobCardProps) {
             <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
           </div>
 
-          {/* Badges */}
-          <div className="flex flex-wrap gap-2 mt-3">
-            <Badge variant="category">
-              {CATEGORY_LABELS[job.category] || job.category}
-            </Badge>
-            <Badge variant="workType">
-              {WORK_TYPE_LABELS[job.workType] || job.workType}
-            </Badge>
-          </div>
-
           {/* Tags */}
           {job.tags && job.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">

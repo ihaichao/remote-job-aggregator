@@ -15,14 +15,32 @@ import {
 } from '@/components/ui/pagination';
 import { Loader2, Briefcase } from 'lucide-react';
 
+function formatUpdateTime(dateString: string): string {
+  if (!dateString) return '未知';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return '刚刚';
+  if (diffMins < 60) return `${diffMins} 分钟前`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} 小时前`;
+  
+  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 export function JobList() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [pagination, setPagination] = useState<PaginationType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     category: '',
     workType: '',
+    region: '',
   });
   const [page, setPage] = useState(1);
 
@@ -35,11 +53,21 @@ export function JobList() {
         const response = await getJobs({
           category: filters.category || undefined,
           workType: filters.workType || undefined,
+          regionLimit: filters.region || undefined,
           page,
           limit: 10,
         });
         setJobs(response.data);
         setPagination(response.pagination);
+        
+        // Only update lastUpdateTime on first page load to show global latest
+        if (page === 1 && response.data.length > 0) {
+          // Find the most recent updatedAt across all returned jobs
+          const latestTime = response.data.reduce((latest, job) => {
+            return job.updatedAt > latest ? job.updatedAt : latest;
+          }, response.data[0].updatedAt);
+          setLastUpdateTime(latestTime);
+        }
       } catch (err) {
         setError('加载失败，请稍后重试');
         console.error(err);
@@ -102,16 +130,11 @@ export function JobList() {
     <div className="space-y-6">
       <Filters filters={filters} onChange={handleFilterChange} />
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 className="h-8 w-8 text-accent animate-spin" />
-          <p className="text-sm text-muted-foreground">正在加载职位...</p>
-        </div>
-      ) : error ? (
+      {error ? (
         <div className="text-center py-16">
           <p className="text-destructive">{error}</p>
         </div>
-      ) : jobs.length === 0 ? (
+      ) : jobs.length === 0 && !loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
             <Briefcase className="h-8 w-8 text-muted-foreground" />
@@ -121,15 +144,26 @@ export function JobList() {
             <p className="text-sm text-muted-foreground mt-1">请尝试调整筛选条件</p>
           </div>
         </div>
+      ) : jobs.length === 0 && loading ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Loader2 className="h-8 w-8 text-accent animate-spin" />
+          <p className="text-sm text-muted-foreground">正在加载职位...</p>
+        </div>
       ) : (
-        <div className="space-y-4">
-          {/* Results count */}
-          <div className="flex items-center justify-between">
+        <div className={`space-y-4 transition-opacity duration-200 ${loading ? 'opacity-50' : ''}`}>
+          {/* Results count and update time */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm text-muted-foreground">
               共 <span className="font-medium text-foreground">{pagination?.total}</span> 个职位
               <span className="mx-1.5">·</span>
               显示第 {(page - 1) * 10 + 1}-{Math.min(page * 10, pagination?.total || 0)} 个
+              {loading && <Loader2 className="inline-block h-4 w-4 ml-2 animate-spin" />}
             </p>
+            {lastUpdateTime && (
+              <p className="text-xs text-muted-foreground">
+                最近更新: {formatUpdateTime(lastUpdateTime)}
+              </p>
+            )}
           </div>
 
           {/* Job cards */}

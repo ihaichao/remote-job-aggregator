@@ -1,6 +1,6 @@
 'use client';
 
-import { CATEGORY_LABELS, WORK_TYPE_LABELS } from '@/lib/constants';
+import { CATEGORY_LABELS, WORK_TYPE_LABELS, COMMON_REGIONS } from '@/lib/constants';
 import {
   Select,
   SelectContent,
@@ -14,6 +14,7 @@ interface FiltersProps {
   filters: {
     category: string;
     workType: string;
+    region: string;
   };
   onChange: (key: string, value: string) => void;
 }
@@ -38,6 +39,25 @@ export function Filters({ filters, onChange }: FiltersProps) {
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
               {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="min-w-[160px]">
+          <Select
+            value={filters.region || 'all'}
+            onValueChange={(value) => onChange('region', value === 'all' ? '' : value)}
+          >
+            <SelectTrigger className="bg-background border-border h-10">
+              <SelectValue placeholder="全部地域" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部地域</SelectItem>
+              {Object.entries(COMMON_REGIONS).map(([value, label]) => (
                 <SelectItem key={value} value={value}>
                   {label}
                 </SelectItem>
