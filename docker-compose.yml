@@ -63,6 +63,7 @@ services:
     container_name: remote-jobs-frontend
     environment:
       NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_GA_ID: G-KY60BL1119
     ports:
       - "3000:3000"
     depends_on:

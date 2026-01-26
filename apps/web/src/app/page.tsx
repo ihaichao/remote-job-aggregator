@@ -27,14 +27,6 @@ export default function Home() {
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
             实时聚合全网高质量远程开发岗位，让你轻松找到理想的远程工作机会
           </p>
-          
-          {/* Stats */}
-          <div className="mt-8 flex flex-wrap gap-8">
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-accent" />
-              <span className="text-sm text-muted-foreground">每小时自动更新</span>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -43,16 +35,13 @@ export default function Home() {
         <JobList />
       </div>
 
-      {/* Footer - Inverted Section */}
+      {/* Footer */}
       <footer className="bg-foreground text-background/80 border-t border-border">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg gradient-bg flex items-center justify-center">
-                <Briefcase className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-semibold text-background">Remote Jobs for Chinese Developers</span>
-            </div>
+            <p className="text-sm text-background/60">
+              © 2026 RemoteCN. All rights reserved.
+            </p>
             <p className="text-sm text-background/60">
               数据来源：V2EX · Real Work From Anywhere
             </p>

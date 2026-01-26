@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Calistoga, JetBrains_Mono } from 'next/font/google'
+import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import './globals.css'
 
 const inter = Inter({
@@ -22,8 +23,12 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: '远程工作聚合 - 专为中国开发者打造',
-  description: '聚合 V2EX、RemoteOK 等平台的远程软件开发工作机会',
+  title: '面向中国开发者的远程工作平台',
+  description: '实时聚合全网高质量远程开发岗位，让你轻松找到理想的远程工作机会',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
@@ -33,7 +38,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <GoogleAnalytics />
+        {children}
+      </body>
     </html>
   )
 }
