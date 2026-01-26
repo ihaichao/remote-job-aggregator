@@ -26,7 +26,7 @@ export function JobCard({ job }: JobCardProps) {
         <div className="flex-1 min-w-0">
           {/* Title */}
           <div className="flex items-start gap-2">
-            <h3 className="text-lg font-semibold text-foreground leading-snug group-hover:text-accent transition-colors line-clamp-2">
+            <h3 className="text-lg text-foreground leading-snug group-hover:text-accent transition-colors line-clamp-2">
               {job.title}
             </h3>
             <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />

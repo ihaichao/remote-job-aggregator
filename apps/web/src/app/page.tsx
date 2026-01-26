@@ -18,7 +18,7 @@ export default function Home() {
           
           {/* Headline */}
           <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground leading-tight">
-            专为<span className="gradient-text">中国开发者</span>打造的
+            面向<span className="gradient-text">中国开发者</span>的
             <span className="gradient-text">远程工作</span>
             平台
           </h1>

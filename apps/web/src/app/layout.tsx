@@ -1,11 +1,18 @@
 import type { Metadata } from 'next'
-import { Inter, Calistoga, JetBrains_Mono } from 'next/font/google'
+import { Source_Sans_3, Calistoga, JetBrains_Mono, Noto_Sans_SC } from 'next/font/google'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import './globals.css'
 
-const inter = Inter({
+const sourceSans = Source_Sans_3({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-source-sans',
+  display: 'swap',
+})
+
+const notoSansSC = Noto_Sans_SC({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-noto-sc',
   display: 'swap',
 })
 
@@ -37,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
+    <html lang="zh-CN" className={`${sourceSans.variable} ${notoSansSC.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
       <body>
         <GoogleAnalytics />
         {children}
