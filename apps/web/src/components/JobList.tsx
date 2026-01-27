@@ -60,8 +60,8 @@ export function JobList() {
         setJobs(response.data);
         setPagination(response.pagination);
         
-        // Only update lastUpdateTime on first page load to show global latest
-        if (page === 1 && response.data.length > 0) {
+        // Only update lastUpdateTime on very first load (not on filter/page changes)
+        if (!lastUpdateTime && response.data.length > 0) {
           // Find the most recent updatedAt across all returned jobs
           const latestTime = response.data.reduce((latest, job) => {
             return job.updatedAt > latest ? job.updatedAt : latest;

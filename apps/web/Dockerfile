@@ -20,9 +20,11 @@ RUN pnpm install --frozen-lockfile
 COPY apps/web ./apps/web
 COPY packages/shared ./packages/shared
 
-# Build web app with production API URL (relative path via nginx proxy)
+# Build web app with production settings
 WORKDIR /app/apps/web
 ENV NEXT_PUBLIC_API_URL=/api
+ARG NEXT_PUBLIC_GA_ID
+ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 RUN pnpm run build
 
 # Production stage

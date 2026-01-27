@@ -60,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_GA_ID: G-KY60BL1119
     container_name: remote-jobs-frontend
     environment:
       NEXT_PUBLIC_API_URL: /api
