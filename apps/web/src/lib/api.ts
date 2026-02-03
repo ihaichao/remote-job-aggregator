@@ -2,7 +2,8 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 // Server-side API base (direct internal Docker network call)
-const SERVER_API_BASE = process.env.INTERNAL_API_URL || API_BASE;
+// In Docker, backend is accessible at http://backend:4000/api
+const SERVER_API_BASE = process.env.INTERNAL_API_URL || 'http://backend:4000/api';
 
 export interface Job {
   id: number;
