@@ -14,7 +14,7 @@ export function JobCard({ job }: JobCardProps) {
 
   return (
     <a
-      href={job.originalUrl}
+      href={job.applyUrl || job.originalUrl}
       target="_blank"
       rel="noopener noreferrer"
       className="group block bg-card border border-border rounded-xl p-5 transition-all duration-300 hover:shadow-lg hover:border-accent/30 hover:-translate-y-0.5"

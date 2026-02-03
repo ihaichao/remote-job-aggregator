@@ -5,7 +5,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   mobile: '移动端',
   game: '游戏',
   devops: '运维',
-  ai: 'AI/ML',
+  ai: 'AI',
   blockchain: '区块链',
   quant: '量化',
   security: '安全',

@@ -8,6 +8,7 @@ export interface Job {
   workType: WorkType;
   sourceSite: string;
   originalUrl: string;
+  applyUrl?: string;
   description?: string;
   datePosted?: Date;
   isActive: boolean;

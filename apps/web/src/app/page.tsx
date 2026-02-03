@@ -1,7 +1,10 @@
 import { JobList } from '@/components/JobList';
-import { Briefcase } from 'lucide-react';
+import { getServerJobs } from '@/lib/api';
 
-export default function Home() {
+export default async function Home() {
+  // Fetch initial jobs on server for SSR (SEO-friendly)
+  const initialData = await getServerJobs({ page: 1, limit: 10 });
+  
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -32,22 +35,21 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <JobList />
+        <JobList 
+          initialJobs={initialData.data} 
+          initialPagination={initialData.pagination}
+        />
       </div>
 
       {/* Footer */}
       <footer className="bg-foreground text-background/80 border-t border-border">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-background/60">
-              © 2026 RemoteCN. All rights reserved.
-            </p>
-            <p className="text-sm text-background/60">
-              数据来源：V2EX · Real Work From Anywhere
-            </p>
-          </div>
+          <p className="text-sm text-background/60 text-center">
+            Copyright © 2025-2026 RemoteCN. All rights reserved.
+          </p>
         </div>
       </footer>
     </main>
   );
 }
+

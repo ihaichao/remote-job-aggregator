@@ -31,20 +31,50 @@ function formatUpdateTime(dateString: string): string {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function JobList() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [pagination, setPagination] = useState<PaginationType | null>(null);
-  const [loading, setLoading] = useState(true);
+interface JobListProps {
+  initialJobs: Job[];
+  initialPagination: PaginationType;
+}
+
+export function JobList({ initialJobs, initialPagination }: JobListProps) {
+  // Use initial data from server for first render (SSR)
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const [pagination, setPagination] = useState<PaginationType | null>(initialPagination);
+  const [loading, setLoading] = useState(false); // Start false since we have initial data
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(() => {
+    // Calculate initial update time from SSR data
+    if (initialJobs.length > 0) {
+      return initialJobs.reduce((latest, job) => {
+        return job.updatedAt > latest ? job.updatedAt : latest;
+      }, initialJobs[0].updatedAt);
+    }
+    return null;
+  });
   const [filters, setFilters] = useState({
     category: '',
     workType: '',
     region: '',
   });
+  const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [page, setPage] = useState(1);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedKeyword(keyword);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [keyword]);
+
+  useEffect(() => {
+    // Skip fetch on initial load since we have SSR data
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+
     async function fetchJobs() {
       setLoading(true);
       setError(null);
@@ -54,20 +84,12 @@ export function JobList() {
           category: filters.category || undefined,
           workType: filters.workType || undefined,
           regionLimit: filters.region || undefined,
+          keyword: debouncedKeyword || undefined,
           page,
           limit: 10,
         });
         setJobs(response.data);
         setPagination(response.pagination);
-        
-        // Only update lastUpdateTime on very first load (not on filter/page changes)
-        if (!lastUpdateTime && response.data.length > 0) {
-          // Find the most recent updatedAt across all returned jobs
-          const latestTime = response.data.reduce((latest, job) => {
-            return job.updatedAt > latest ? job.updatedAt : latest;
-          }, response.data[0].updatedAt);
-          setLastUpdateTime(latestTime);
-        }
       } catch (err) {
         setError('加载失败，请稍后重试');
         console.error(err);
@@ -77,10 +99,14 @@ export function JobList() {
     }
 
     fetchJobs();
-  }, [filters, page]);
+  }, [filters.category, filters.workType, filters.region, debouncedKeyword, page, isInitialLoad]);
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    if (key === 'keyword') {
+      setKeyword(value);
+    } else {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+    }
     setPage(1);
   };
 
@@ -128,7 +154,7 @@ export function JobList() {
 
   return (
     <div className="space-y-6">
-      <Filters filters={filters} onChange={handleFilterChange} />
+      <Filters filters={{ ...filters, keyword }} onChange={handleFilterChange} />
 
       {error ? (
         <div className="text-center py-16">

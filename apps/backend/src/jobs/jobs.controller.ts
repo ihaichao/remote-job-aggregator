@@ -10,6 +10,7 @@ export class JobsController {
     @Query('category') category?: string,
     @Query('regionLimit') regionLimit?: string,
     @Query('workType') workType?: string,
+    @Query('keyword') keyword?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -17,6 +18,7 @@ export class JobsController {
       category,
       regionLimit,
       workType,
+      keyword,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 20,
     });

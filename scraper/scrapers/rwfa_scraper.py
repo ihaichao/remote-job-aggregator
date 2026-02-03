@@ -6,6 +6,7 @@ All jobs on this site are 100% remote worldwide.
 """
 
 import re
+import json
 import httpx
 from typing import List, Dict
 from datetime import datetime, timedelta
@@ -39,7 +40,8 @@ class RWFAScraper:
                     jobs = self._parse_page(response.text)
                     if not jobs:
                         break
-                        
+
+                    await self._enrich_apply_urls(client, jobs)
                     all_jobs.extend(jobs)
                     
                     # Rate limiting
@@ -49,6 +51,28 @@ class RWFAScraper:
                     break
         
         return all_jobs
+
+    async def _enrich_apply_urls(self, client: httpx.AsyncClient, jobs: List[Dict]) -> None:
+        """Fetch job detail pages to extract apply URLs."""
+        import asyncio
+
+        semaphore = asyncio.Semaphore(5)
+
+        async def fetch_apply(job: Dict) -> None:
+            url = job.get("original_url")
+            if not url:
+                job["apply_url"] = None
+                return
+
+            async with semaphore:
+                try:
+                    response = await client.get(url)
+                    response.raise_for_status()
+                    job["apply_url"] = self._extract_apply_url(response.text)
+                except Exception:
+                    job["apply_url"] = None
+
+        await asyncio.gather(*(fetch_apply(job) for job in jobs))
     
     def _parse_page(self, html: str) -> List[Dict]:
         """Parse job listings from HTML page"""
@@ -119,9 +143,37 @@ class RWFAScraper:
             'work_type': 'fulltime',  # Default to fulltime
             'source_site': 'rwfa',
             'original_url': url,
+            'apply_url': None,
             'description': text[:2000],  # First 2000 chars as description
             'date_posted': date_posted,
         }
+
+    def _extract_apply_url(self, html: str) -> str:
+        """Extract outbound apply URL from RWFA job detail page."""
+        chunks = re.findall(
+            r'self\.__next_f\.push\(\[1,"((?:\\.|[^"\\])*)"\]\)',
+            html,
+            re.DOTALL,
+        )
+        for chunk in chunks:
+            try:
+                decoded = json.loads(f"\"{chunk}\"")
+            except Exception:
+                continue
+
+            url = self._extract_apply_url_from_text(decoded)
+            if url:
+                return url
+
+        return self._extract_apply_url_from_text(html)
+
+    def _extract_apply_url_from_text(self, text: str) -> str:
+        """Find the first external apply link in the given text."""
+        for match in re.finditer(r'"link":"(https?://[^"]+)"', text):
+            url = match.group(1)
+            if "realworkfromanywhere.com" not in url:
+                return url
+        return None
     
     def _extract_date(self, text: str) -> str:
         """Extract and parse relative date from text like '2 days ago', 'about 17 hours ago'"""

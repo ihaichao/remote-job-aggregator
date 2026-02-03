@@ -12,12 +12,14 @@ datasource db {
 model Job {
   id          Int       @id @default(autoincrement())
   title       String    @db.VarChar(255)
+  company     String?   @db.VarChar(255)
   category    String    @db.VarChar(50)
   tags        String[]
   regionLimit String    @map("region_limit") @db.VarChar(50)
   workType    String    @map("work_type") @db.VarChar(50)
   sourceSite  String    @map("source_site") @db.VarChar(50)
   originalUrl String    @unique @map("original_url") @db.Text
+  applyUrl    String?   @map("apply_url") @db.Text
   contentHash String    @unique @map("content_hash") @db.VarChar(64)
   description String?   @db.Text
   datePosted  DateTime? @map("date_posted")

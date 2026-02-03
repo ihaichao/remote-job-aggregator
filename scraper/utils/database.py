@@ -28,9 +28,9 @@ class DatabaseClient:
             query = """
             INSERT INTO jobs (
                 title, company, category, tags, region_limit, work_type,
-                source_site, original_url, content_hash, description,
+                source_site, original_url, apply_url, content_hash, description,
                 date_posted, date_scraped, is_active, created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """
 
@@ -56,6 +56,7 @@ class DatabaseClient:
                 job_data.get('work_type', 'fulltime')[:50],
                 job_data['source_site'][:50],
                 job_data['original_url'],
+                job_data.get('apply_url'),
                 content_hash,
                 job_data.get('description', ''),
                 date_posted,
@@ -127,4 +128,3 @@ class DatabaseClient:
     def close(self):
         self.cursor.close()
         self.conn.close()
-
