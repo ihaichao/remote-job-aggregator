@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class JobsService {
@@ -18,7 +17,7 @@ export class JobsService {
     const limit = Math.min(filters.limit || 20, 100); // Max 100 per page
     const skip = (page - 1) * limit;
 
-    const where: Prisma.JobWhereInput = { isActive: true };
+    const where: any = { isActive: true };
 
     if (filters.category) where.category = filters.category;
     if (filters.regionLimit) where.regionLimit = filters.regionLimit;
