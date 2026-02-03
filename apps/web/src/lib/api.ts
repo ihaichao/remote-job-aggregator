@@ -77,18 +77,22 @@ export async function getServerJobs(filters?: JobFilters): Promise<JobsResponse>
 
   const url = `${SERVER_API_BASE}/jobs${params.toString() ? `?${params}` : ''}`;
   
-  const res = await fetch(url, { 
-    cache: 'no-store',
-    next: { revalidate: 0 }  // Always fresh for SSR
-  });
+  try {
+    const res = await fetch(url, { 
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    console.error(`Server fetch failed: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      console.error(`Server fetch failed: ${res.status} ${res.statusText}`);
+      return { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error('SSR fetch error:', error);
     // Return empty response on error to avoid breaking SSR
     return { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
   }
-
-  return res.json();
 }
 
 export async function getJob(id: number): Promise<Job> {
