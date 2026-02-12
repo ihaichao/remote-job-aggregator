@@ -16,7 +16,7 @@ import sys
 from datetime import datetime
 from dotenv import load_dotenv
 
-from scrapers import V2EXScraper, RWFAScraper, RemoteComScraper
+from scrapers import V2EXScraper, RWFAScraper, RemoteComScraper, EleduckScraper
 
 # Load .env from root directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -32,6 +32,7 @@ async def scrape_all():
         ('V2EX', V2EXScraper()),
         ('RWFA', RWFAScraper()),
         ('Remote.com', RemoteComScraper()),
+        ('Eleduck', EleduckScraper()),
     ]
 
     all_jobs = []

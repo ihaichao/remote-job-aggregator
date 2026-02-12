@@ -1,6 +1,7 @@
 import httpx
 from typing import List, Dict
 import os
+from utils.ai_classifier import AIClassifier
 
 class V2EXScraper:
     """V2EX Scraper using official API v2"""
@@ -21,6 +22,7 @@ class V2EXScraper:
         self.token = token or os.getenv('V2EX_TOKEN')
         if self.token:
             self.HEADERS['Authorization'] = f'Bearer {self.token}'
+        self.ai_classifier = AIClassifier()
 
     async def scrape(self) -> List[Dict]:
         """Scrape V2EX nodes for remote job positions"""
@@ -100,6 +102,16 @@ class V2EXScraper:
                 # Filter for remote keywords in title or content (applies to all nodes)
                 if not any(kw in full_text for kw in self.REMOTE_KEYWORDS):
                     continue
+
+                # STAGE 2: AI Check (Semantic Filter)
+                if not await self.ai_classifier.is_job_posting(title, content):
+                    print(f"  V2EX AI skipped: {title}")
+                    with open("v2ex_decisions.txt", "a") as f:
+                        f.write(f"[AI_SKIP] {title}\n")
+                    continue
+
+                with open("v2ex_decisions.txt", "a") as f:
+                    f.write(f"[KEEP] {title}\n")
 
                 category = self._extract_category(title, content)
                 

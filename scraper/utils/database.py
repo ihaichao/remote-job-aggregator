@@ -87,12 +87,9 @@ class DatabaseClient:
         return text
 
     def _generate_hash(self, job_data: Dict) -> str:
-        """Generate content hash for deduplication"""
-        # Normalize title and take first 200 chars of description
+        """Generate content hash for deduplication based on normalized title only"""
         title = self._normalize_text(job_data.get('title', ''))
-        desc = self._normalize_text(job_data.get('description', ''))[:200]
-        content = f"{title}{desc}"
-        return hashlib.sha256(content.encode()).hexdigest()
+        return hashlib.sha256(title.encode()).hexdigest()
 
     def _is_similar_exists(self, job_data: Dict) -> bool:
         """Check if a similar job already exists from the same source"""
