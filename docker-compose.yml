@@ -81,12 +81,10 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs
       V2EX_TOKEN: ${V2EX_TOKEN}
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: http://172.17.0.1:11434
     depends_on:
       postgres:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - app-network
     restart: unless-stopped
