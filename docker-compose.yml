@@ -73,21 +73,6 @@ services:
     networks:
       - app-network
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: remote-jobs-ollama
-    volumes:
-      - ./ollama_data:/root/.ollama
-    networks:
-      - app-network
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
-
   scraper:
     build:
       context: ./scraper
@@ -96,12 +81,12 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs
       V2EX_TOKEN: ${V2EX_TOKEN}
-      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - app-network
     restart: unless-stopped
