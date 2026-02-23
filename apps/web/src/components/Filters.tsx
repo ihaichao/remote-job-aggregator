@@ -63,6 +63,25 @@ export function Filters({ filters, onChange }: FiltersProps) {
         <div className="flex flex-wrap gap-3 flex-1">
           <div className="min-w-[140px] flex-1 sm:flex-none">
             <Select
+              value={filters.category || 'all'}
+              onValueChange={(value) => onChange('category', value === 'all' ? '' : value)}
+            >
+              <SelectTrigger className="bg-background border-border h-10 rounded-lg">
+                <SelectValue placeholder="全部类型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部类型</SelectItem>
+                {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="min-w-[140px] flex-1 sm:flex-none">
+            <Select
               value={filters.region || 'all'}
               onValueChange={(value) => onChange('region', value === 'all' ? '' : value)}
             >

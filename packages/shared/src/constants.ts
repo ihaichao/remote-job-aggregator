@@ -6,10 +6,16 @@ export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   backend: '后端开发',
   fullstack: '全栈开发',
   mobile: '移动开发',
+  game: '游戏开发',
   devops: 'DevOps',
   ai: 'AI/机器学习',
   blockchain: '区块链',
-  unknown: '其他',
+  quant: '量化交易',
+  security: '安全',
+  testing: '测试',
+  data: '大数据',
+  embedded: '嵌入式',
+  other: '其他',
 };
 
 // 地域限制标签

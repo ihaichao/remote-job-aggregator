@@ -11,15 +11,19 @@ import httpx
 from typing import List, Dict
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
+from utils.ai_classifier import AIClassifier
 
 
 class RWFAScraper:
     """Scraper for realworkfromanywhere.com"""
-    
+
     BASE_URL = "https://www.realworkfromanywhere.com"
     ENGINEER_JOBS_PATH = "/remote-engineer-jobs"
     MAX_PAGES = 15  # Scrape all 15 pages
-    
+
+    def __init__(self):
+        self.ai_classifier = AIClassifier()
+
     async def scrape(self) -> List[Dict]:
         """Fetch remote engineer jobs from RWFA"""
         import asyncio
@@ -42,6 +46,11 @@ class RWFAScraper:
                         break
 
                     await self._enrich_apply_urls(client, jobs)
+                    # Classify categories using AI
+                    for job in jobs:
+                        job['category'] = await self.ai_classifier.classify_category(
+                            job['title'], job.get('description', '')
+                        )
                     all_jobs.extend(jobs)
                     
                     # Rate limiting
@@ -138,7 +147,7 @@ class RWFAScraper:
             'source_id': f"rwfa-{source_id}",
             'title': title[:255],
             'company': company[:255] if company else 'Unknown',
-            'category': self._extract_category(title, text),
+            'category': ["other"],  # Will be classified by AI later
             'region_limit': 'worldwide',  # All RWFA jobs are worldwide
             'work_type': 'fulltime',  # Default to fulltime
             'source_site': 'rwfa',

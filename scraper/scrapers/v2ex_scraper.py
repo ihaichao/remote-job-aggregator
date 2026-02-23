@@ -113,11 +113,7 @@ class V2EXScraper:
                 with open("v2ex_decisions.txt", "a") as f:
                     f.write(f"[KEEP] {title}\n")
 
-                category = self._extract_category(title, content)
-                
-                # Skip jobs with unknown category
-                if category == 'unknown':
-                    continue
+                category = await self.ai_classifier.classify_category(title, content)
 
                 job = {
                     'source_id': str(topic['id']),

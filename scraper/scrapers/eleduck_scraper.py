@@ -90,9 +90,9 @@ class EleduckScraper:
                         tag_names = [t.get("name", "") for t in tags]
                         
                         company = self._extract_company(title, summary)
-                        category = self._extract_category(title, summary)
+                        category = await self.ai_classifier.classify_category(title, summary)
                         work_type = self._extract_work_type_from_tags(tag_names, title, summary)
-                        
+
                         job = {
                             'source_id': f"eleduck-{post_id}",
                             'title': title[:255],

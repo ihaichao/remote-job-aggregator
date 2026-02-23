@@ -47,10 +47,17 @@ class DatabaseClient:
             if not isinstance(tags, list):
                 tags = []
 
+            # Handle category as array
+            category = job_data.get('category', ['other'])
+            if isinstance(category, str):
+                category = [category]
+            if not isinstance(category, list) or not category:
+                category = ['other']
+
             self.cursor.execute(query, (
                 job_data['title'][:255],
                 job_data.get('company', 'Unknown')[:255],
-                job_data.get('category', 'unknown')[:50],
+                category,
                 tags,
                 job_data.get('region_limit', 'worldwide')[:50],
                 job_data.get('work_type', 'fulltime')[:50],

@@ -9,21 +9,25 @@ import re
 import json
 import httpx
 from typing import List, Dict
+from utils.ai_classifier import AIClassifier
 
 
 class RemoteComScraper:
     """Scraper for remote.com job listings using embedded JSON data"""
-    
+
     BASE_URL = "https://remote.com"
     JOBS_PATH = "/jobs/all"
     MAX_PAGES = 13  # Based on pagination analysis
-    
+
     # Query parameters for engineer jobs
     QUERY_PARAMS = {
         "query": "engineer",
         "workplaceLocation": "remote",
         "country": "anywhere"
     }
+
+    def __init__(self):
+        self.ai_classifier = AIClassifier()
     
     async def scrape(self) -> List[Dict]:
         """Fetch remote engineer jobs from remote.com"""
@@ -46,7 +50,12 @@ class RemoteComScraper:
                     jobs = self._parse_page(response.text)
                     if not jobs:
                         break
-                        
+
+                    # Classify categories using AI
+                    for job in jobs:
+                        job['category'] = await self.ai_classifier.classify_category(
+                            job['title'], job.get('description', '')
+                        )
                     all_jobs.extend(jobs)
                     print(f"  Remote.com page {page}: found {len(jobs)} jobs")
                     
@@ -102,7 +111,7 @@ class RemoteComScraper:
                 'source_id': f"remotecom-{slug}",
                 'title': title[:255],
                 'company': company[:255] if company else 'Unknown',
-                'category': self._extract_category(title),
+                'category': ["other"],  # Will be classified by AI later
                 'region_limit': 'worldwide',
                 'work_type': 'fulltime',
                 'source_site': 'remotecom',

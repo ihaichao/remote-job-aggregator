@@ -2,7 +2,7 @@
 export interface Job {
   id: number;
   title: string;
-  category: JobCategory;
+  category: JobCategory[];
   tags: string[];
   regionLimit: RegionLimit;
   workType: WorkType;
@@ -22,10 +22,16 @@ export type JobCategory =
   | 'backend'
   | 'fullstack'
   | 'mobile'
+  | 'game'
   | 'devops'
   | 'ai'
   | 'blockchain'
-  | 'unknown';
+  | 'quant'
+  | 'security'
+  | 'testing'
+  | 'data'
+  | 'embedded'
+  | 'other';
 
 // Region restriction
 export type RegionLimit = 'worldwide' | 'regional' | 'timezone';

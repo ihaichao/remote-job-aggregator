@@ -13,7 +13,7 @@ model Job {
   id          Int       @id @default(autoincrement())
   title       String    @db.VarChar(255)
   company     String?   @db.VarChar(255)
-  category    String    @db.VarChar(50)
+  category    String[]
   tags        String[]
   regionLimit String    @map("region_limit") @db.VarChar(50)
   workType    String    @map("work_type") @db.VarChar(50)

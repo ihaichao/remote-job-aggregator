@@ -19,7 +19,7 @@ export class JobsService {
 
     const where: any = { isActive: true };
 
-    if (filters.category) where.category = filters.category;
+    if (filters.category) where.category = { has: filters.category };
     if (filters.regionLimit) where.regionLimit = filters.regionLimit;
     if (filters.workType) where.workType = filters.workType;
     if (filters.keyword && filters.keyword.trim()) {

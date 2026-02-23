@@ -9,7 +9,7 @@ export interface Job {
   id: number;
   title: string;
   company?: string;
-  category: string;
+  category: string[];
   tags: string[];
   regionLimit: string;
   workType: string;

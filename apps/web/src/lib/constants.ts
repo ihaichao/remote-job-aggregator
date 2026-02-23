@@ -9,6 +9,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
   blockchain: '区块链',
   quant: '量化',
   security: '安全',
+  testing: '测试',
+  data: '数据',
+  embedded: '嵌入式',
+  other: '其他',
 };
 
 export const COMMON_REGIONS: Record<string, string> = {
