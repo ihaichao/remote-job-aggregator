@@ -12,21 +12,78 @@ CATEGORY_KEYS = [
 ]
 
 class AIClassifier:
-    """Classifies job postings using a local Ollama LLM"""
+    """Classifies job postings using LLM (OpenRouter API or local Ollama)"""
 
     client: httpx.AsyncClient = None
 
     def __init__(self, base_url: str = None, model: str = None):
-        self.base_url = base_url or os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434')
-        self.model = model or os.getenv('OLLAMA_MODEL', 'qwen2.5:3b')
-        self.timeout = 120.0  # Generous timeout for larger local LLM models
+        self.api_key = os.getenv('OPENROUTER_API_KEY', '')
+        self.timeout = 60.0
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
+
+        if self.api_key:
+            # Use OpenRouter (OpenAI-compatible API)
+            self.backend = 'openrouter'
+            self.base_url = base_url or os.getenv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
+            self.model = model or os.getenv('OPENROUTER_MODEL', 'qwen/qwen3-4b:free')
+        else:
+            # Fallback to local Ollama
+            self.backend = 'ollama'
+            self.base_url = base_url or os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434')
+            self.model = model or os.getenv('OLLAMA_MODEL', 'qwen2.5:3b')
+            self.timeout = 120.0
 
     async def _get_client(self):
         if self.client is None or self.client.is_closed:
             self.client = httpx.AsyncClient(timeout=self.timeout)
         return self.client
+
+    async def _call_llm(self, prompt: str, temperature: float = 0.1) -> str:
+        """Unified LLM call that works with both OpenRouter and Ollama."""
+        client = await self._get_client()
+
+        if self.backend == 'openrouter':
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": temperature,
+                    "top_p": 0.1,
+                }
+            )
+            if response.status_code == 200:
+                result = response.json()
+                content = result["choices"][0]["message"]["content"].strip()
+                # qwen3 may wrap answer in <think>...</think> tags, strip them
+                if '</think>' in content:
+                    content = content.split('</think>')[-1].strip()
+                return content
+            else:
+                raise Exception(f"OpenRouter API error: {response.status_code} - {response.text}")
+        else:
+            response = await client.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature,
+                        "top_p": 0.1,
+                    }
+                }
+            )
+            if response.status_code == 200:
+                result = response.json()
+                return result.get("response", "").strip()
+            else:
+                raise Exception(f"Ollama API error: {response.status_code} - {response.text}")
 
     async def is_job_posting(self, title: str, description: str) -> bool:
         """
@@ -35,21 +92,21 @@ class AIClassifier:
         """
         # Truncate description to save context
         desc_sample = description[:500]
-        
-        prompt = f"""你是一个智能招聘信息分类器。你的任务是判断给出的文本是“JOB_AD”（招聘启事）还是“OTHER”（其他非招聘内容）。
+
+        prompt = f"""你是一个智能招聘信息分类器。你的任务是判断给出的文本是"JOB_AD"（招聘启事）还是"OTHER"（其他非招聘内容）。
 
 ### 判定标准：
-- **JOB_AD**: 只要是在“找人干活”、“招人”、“招聘”、“寻找合作伙伴/技术合伙人”且涉及报酬或项目合作，都属于招聘。
+- **JOB_AD**: 只要是在"找人干活"、"招人"、"招聘"、"寻找合作伙伴/技术合伙人"且涉及报酬或项目合作，都属于招聘。
 - **OTHER**: 个人求职简历、程序员故事分享、技术讨论、单纯的产品展示、没有报酬的兴趣小组、教程、新闻。
 
 ### 示例：
-- “招聘 React 开发，时薪 200” -> JOB_AD
-- “寻找初创团队技术合伙人” -> JOB_AD
-- “兼职：需要一个设计做 2 天详情页” -> JOB_AD
-- “【兼职/远程】AI 工程师” -> JOB_AD
-- “分享一下我工作 10 年的心得” -> OTHER
-- “我用 Golang 写了个开源工具” -> OTHER
-- “5 年 Java 求职远程” -> OTHER（这是简历）
+- "招聘 React 开发，时薪 200" -> JOB_AD
+- "寻找初创团队技术合伙人" -> JOB_AD
+- "兼职：需要一个设计做 2 天详情页" -> JOB_AD
+- "【兼职/远程】AI 工程师" -> JOB_AD
+- "分享一下我工作 10 年的心得" -> OTHER
+- "我用 Golang 写了个开源工具" -> OTHER
+- "5 年 Java 求职远程" -> OTHER（这是简历）
 
 ### 请判断以下内容：
 标题: {title}
@@ -59,31 +116,12 @@ class AIClassifier:
 输出:"""
 
         try:
-            client = await self._get_client()
-            response = await client.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.1,
-                        "top_p": 0.1,
-                    }
-                }
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                answer = result.get("response", "").strip().upper()
-                self.logger.info(f"AI Classification for '{title[:30]}...': {answer}")
-                return "JOB" in answer
-            else:
-                self.logger.error(f"Ollama API error: {response.status_code} - {response.text}")
-                return True  # Default to True on API error to avoid missing jobs
-                    
+            answer = await self._call_llm(prompt)
+            answer = answer.upper()
+            self.logger.info(f"AI Classification for '{title[:30]}...': {answer}")
+            return "JOB" in answer
         except Exception as e:
-            self.logger.error(f"Failed to connect to Ollama ({self.base_url}): {repr(e)}")
+            self.logger.error(f"LLM call failed ({self.backend}): {repr(e)}")
             return True  # Fallback to true (let it pass rule-based filter)
 
     @staticmethod
@@ -166,8 +204,6 @@ class AIClassifier:
         Returns a list of category keys, e.g. ["frontend", "ai"].
         Falls back to ["other"] on error.
         """
-        desc_sample = ""  # Only use title for classification to avoid noise
-
         category_list = """
 - frontend: 前端开发（React/Vue/Angular/CSS/HTML）
 - backend: 后端开发（Java/Python/Go/Node/PHP/Ruby/Rust/C++/服务端/架构师）
@@ -184,7 +220,7 @@ class AIClassifier:
 - embedded: 嵌入式/IoT/固件/驱动开发
 - other: 不属于以上任何类别"""
 
-        prompt = f"""你是一个职位分类器。根据职位标题和描述，判断这个岗位属于哪个技术方向。
+        prompt = f"""你是一个职位分类器。根据职位标题，判断这个岗位属于哪个技术方向。
 
 ### 类别列表：
 {category_list}
@@ -223,41 +259,22 @@ class AIClassifier:
 ### 输出（只输出英文 key，逗号分隔）:"""
 
         try:
-            client = await self._get_client()
-            response = await client.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.1,
-                        "top_p": 0.1,
-                    }
-                }
-            )
-
-            if response.status_code == 200:
-                result = response.json()
-                answer = result.get("response", "").strip().lower()
-                # Parse comma-separated keys and validate
-                raw_keys = [k.strip() for k in answer.split(",")]
-                categories = [k for k in raw_keys if k in CATEGORY_KEYS]
-                if not categories:
-                    categories = ["other"]
-                # Hard rules: enforce keyword requirements the LLM often ignores
-                categories = self._enforce_category_rules(title, categories)
-                # Remove "other" if there are real categories alongside it
-                if len(categories) > 1 and "other" in categories:
-                    categories = [c for c in categories if c != "other"]
-                self.logger.info(f"AI Category for '{title[:30]}...': {categories}")
-                return categories
-            else:
-                self.logger.error(f"Ollama API error: {response.status_code} - {response.text}")
-                return ["other"]
-
+            answer = await self._call_llm(prompt)
+            answer = answer.lower()
+            # Parse comma-separated keys and validate
+            raw_keys = [k.strip() for k in answer.split(",")]
+            categories = [k for k in raw_keys if k in CATEGORY_KEYS]
+            if not categories:
+                categories = ["other"]
+            # Hard rules: enforce keyword requirements the LLM often ignores
+            categories = self._enforce_category_rules(title, categories)
+            # Remove "other" if there are real categories alongside it
+            if len(categories) > 1 and "other" in categories:
+                categories = [c for c in categories if c != "other"]
+            self.logger.info(f"AI Category for '{title[:30]}...': {categories}")
+            return categories
         except Exception as e:
-            self.logger.error(f"Failed to classify category ({self.base_url}): {repr(e)}")
+            self.logger.error(f"Failed to classify category ({self.backend}): {repr(e)}")
             return ["other"]
 
     async def close(self):
@@ -266,18 +283,23 @@ class AIClassifier:
 
 if __name__ == "__main__":
     import asyncio
-    
+
     async def test():
         classifier = AIClassifier()
+        print(f"Backend: {classifier.backend}, Model: {classifier.model}")
         # Test cases
         cases = [
             ("招聘前后端开发", "我们公司正在寻找一名经验丰富的全栈工程师..."),
             ("10年老兵求职", "本人擅长Go语言，目前正在寻找远程机会..."),
-            ("我开发了一个APP", "最近用Flutter写了个工具，分享一下心路历程..."),
+            ("Senior Backend Engineer (API)", "Building scalable APIs..."),
+            ("[海外100%远程] 全栈+AI LLM 创始工程师", "寻找顶尖 Builder..."),
         ]
-        
+
         for title, desc in cases:
-            res = await classifier.is_job_posting(title, desc)
-            print(f"Title: {title} -> Is Job: {res}")
+            is_job = await classifier.is_job_posting(title, desc)
+            cats = await classifier.classify_category(title, desc)
+            print(f"Title: {title[:40]} -> Job: {is_job}, Category: {cats}")
+
+        await classifier.close()
 
     asyncio.run(test())

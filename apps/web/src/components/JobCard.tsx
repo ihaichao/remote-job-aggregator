@@ -33,7 +33,7 @@ export function JobCard({ job }: JobCardProps) {
           </div>
 
           {/* Category badges */}
-          {job.category && job.category.length > 0 && (
+          {job.category && job.category.length > 0 && !(job.category.length === 1 && job.category[0] === 'other') && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {job.category.map((cat) => (
                 <Badge key={cat} variant="category" className="text-xs px-2 py-0.5">
