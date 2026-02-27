@@ -16,24 +16,6 @@ services:
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: remote-jobs-redis
-    volumes:
-      - redis_data:/data
-    networks:
-      - app-network
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.6
-    container_name: remote-jobs-meilisearch
-    environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-    volumes:
-      - meilisearch_data:/meili_data
-    networks:
-      - app-network
-
   backend:
     build:
       context: .
@@ -41,17 +23,11 @@ services:
     container_name: remote-jobs-backend
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs?schema=public
-      REDIS_URL: redis://redis:6379
-      MEILISEARCH_URL: http://meilisearch:7700
     ports:
       - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
-      meilisearch:
-        condition: service_started
     networks:
       - app-network
     command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:prod"
@@ -107,8 +83,6 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
-  meilisearch_data:
 
 networks:
   app-network:
