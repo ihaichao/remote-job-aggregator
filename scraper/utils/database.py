@@ -9,6 +9,19 @@ class DatabaseClient:
         self.conn = psycopg2.connect(connection_string)
         self.cursor = self.conn.cursor()
 
+    def job_exists(self, title: str, original_url: str) -> bool:
+        """Check if a job already exists by content hash or URL (for pre-AI dedup)"""
+        try:
+            content_hash = hashlib.sha256(self._normalize_text(title).encode()).hexdigest()
+            self.cursor.execute(
+                "SELECT 1 FROM jobs WHERE content_hash = %s OR original_url = %s LIMIT 1",
+                (content_hash, original_url)
+            )
+            return self.cursor.fetchone() is not None
+        except Exception:
+            self.conn.rollback()
+            return False
+
     def insert_job(self, job_data: Dict) -> Optional[int]:
         """Insert job data, return job_id"""
         try:

@@ -26,13 +26,13 @@ if not os.getenv('DATABASE_URL') and os.getenv('POSTGRES_PASSWORD'):
     os.environ['DATABASE_URL'] = f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/remote_jobs"
 
 
-async def scrape_all():
+async def scrape_all(db=None):
     """Run all scrapers and collect jobs"""
     scrapers = [
-        ('V2EX', V2EXScraper()),
-        ('RWFA', RWFAScraper()),
-        ('Remote.com', RemoteComScraper()),
-        ('Eleduck', EleduckScraper()),
+        ('V2EX', V2EXScraper(db=db)),
+        ('RWFA', RWFAScraper(db=db)),
+        ('Remote.com', RemoteComScraper(db=db)),
+        ('Eleduck', EleduckScraper(db=db)),
     ]
 
     all_jobs = []
@@ -52,31 +52,6 @@ async def scrape_all():
     return all_jobs
 
 
-async def run_with_database(jobs):
-    """Save jobs to database"""
-    from utils import DatabaseClient
-
-    database_url = os.getenv('DATABASE_URL')
-    if not database_url:
-        print("Error: DATABASE_URL environment variable not set", file=sys.stderr)
-        sys.exit(1)
-
-    db = DatabaseClient(database_url)
-
-    inserted = 0
-    for job in jobs:
-        try:
-            result = db.insert_job(job)
-            if result:
-                inserted += 1
-        except Exception as e:
-            print(f"Error inserting job: {e}", file=sys.stderr)
-
-    db.close()
-
-    print(f"\nInserted {inserted} new jobs (skipped {len(jobs) - inserted} duplicates)", file=sys.stderr)
-    return inserted
-
 
 async def main():
     parser = argparse.ArgumentParser(description='Remote Job Scraper')
@@ -84,11 +59,16 @@ async def main():
     parser.add_argument('--json', action='store_true', help='Output results as JSON')
     args = parser.parse_args()
 
+    # Production mode: DB-aware scraping (dedup before AI calls)
+    if not args.test and not args.json:
+        await main_production()
+        return
+
     print(f"\n{'=' * 50}", file=sys.stderr)
     print(f"  Remote Job Scraper - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", file=sys.stderr)
     print(f"{'=' * 50}\n", file=sys.stderr)
 
-    # Scrape all sources
+    # Test/JSON mode: no DB needed
     jobs = await scrape_all()
 
     print(f"\nTotal: {len(jobs)} jobs scraped", file=sys.stderr)
@@ -104,9 +84,37 @@ async def main():
         print("\nSample jobs:", file=sys.stderr)
         for job in jobs[:3]:
             print(f"  - [{job['source_site']}] {job['title']} @ {job['company']}", file=sys.stderr)
-    else:
-        # Production mode - save to database
-        await run_with_database(jobs)
+
+
+async def main_production():
+    """Production mode: create DB first, pass to scrapers for dedup, then insert"""
+    from utils import DatabaseClient
+
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        print("Error: DATABASE_URL environment variable not set", file=sys.stderr)
+        sys.exit(1)
+
+    db = DatabaseClient(database_url)
+
+    print(f"\n{'=' * 50}", file=sys.stderr)
+    print(f"  Remote Job Scraper - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", file=sys.stderr)
+    print(f"{'=' * 50}\n", file=sys.stderr)
+
+    jobs = await scrape_all(db=db)
+    print(f"\nTotal: {len(jobs)} new jobs scraped", file=sys.stderr)
+
+    inserted = 0
+    for job in jobs:
+        try:
+            result = db.insert_job(job)
+            if result:
+                inserted += 1
+        except Exception as e:
+            print(f"Error inserting job: {e}", file=sys.stderr)
+
+    db.close()
+    print(f"\nInserted {inserted} new jobs (skipped {len(jobs) - inserted} duplicates)", file=sys.stderr)
 
 
 if __name__ == '__main__':

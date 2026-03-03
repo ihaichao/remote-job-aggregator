@@ -55,6 +55,7 @@ class AIClassifier:
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": temperature,
                     "top_p": 0.1,
+                    "max_tokens": 50,
                 }
             )
             if response.status_code == 200:

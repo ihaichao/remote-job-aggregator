@@ -26,8 +26,9 @@ class RemoteComScraper:
         "country": "anywhere"
     }
 
-    def __init__(self):
+    def __init__(self, db=None):
         self.ai_classifier = AIClassifier()
+        self.db = db
     
     async def scrape(self) -> List[Dict]:
         """Fetch remote engineer jobs from remote.com"""
@@ -51,12 +52,19 @@ class RemoteComScraper:
                     if not jobs:
                         break
 
-                    # Classify categories using AI
+                    # Filter out existing jobs before AI calls
+                    new_jobs = []
                     for job in jobs:
+                        if self.db and self.db.job_exists(job['title'], job['original_url']):
+                            continue
+                        new_jobs.append(job)
+
+                    # Classify categories using AI (only for new jobs)
+                    for job in new_jobs:
                         job['category'] = await self.ai_classifier.classify_category(
                             job['title'], job.get('description', '')
                         )
-                    all_jobs.extend(jobs)
+                    all_jobs.extend(new_jobs)
                     print(f"  Remote.com page {page}: found {len(jobs)} jobs")
                     
                     # Rate limiting

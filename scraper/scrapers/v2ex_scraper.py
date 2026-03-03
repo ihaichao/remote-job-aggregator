@@ -18,11 +18,12 @@ class V2EXScraper:
     # Keywords to filter remote jobs from the general jobs node
     REMOTE_KEYWORDS = ['远程', 'remote', 'Remote', 'REMOTE', '在家', 'WFH', 'work from home', '居家']
 
-    def __init__(self, token: str = None):
+    def __init__(self, token: str = None, db=None):
         self.token = token or os.getenv('V2EX_TOKEN')
         if self.token:
             self.HEADERS['Authorization'] = f'Bearer {self.token}'
         self.ai_classifier = AIClassifier()
+        self.db = db
 
     async def scrape(self) -> List[Dict]:
         """Scrape V2EX nodes for remote job positions"""
@@ -103,15 +104,19 @@ class V2EXScraper:
                 if not any(kw in full_text for kw in self.REMOTE_KEYWORDS):
                     continue
 
-                # STAGE 2: AI Check (Semantic Filter)
-                if not await self.ai_classifier.is_job_posting(title, content):
-                    print(f"  V2EX AI skipped: {title}")
-                    with open("v2ex_decisions.txt", "a") as f:
-                        f.write(f"[AI_SKIP] {title}\n")
+                # Skip on-site / location-specific jobs
+                if self._is_onsite(title, content):
                     continue
 
-                with open("v2ex_decisions.txt", "a") as f:
-                    f.write(f"[KEEP] {title}\n")
+                # STAGE 2: DB dedup check (skip AI calls for existing jobs)
+                original_url = topic.get('url', f"https://www.v2ex.com/t/{topic['id']}")
+                if self.db and self.db.job_exists(title, original_url):
+                    continue
+
+                # STAGE 3: AI Check (Semantic Filter)
+                if not await self.ai_classifier.is_job_posting(title, content):
+                    print(f"  V2EX AI skipped: {title}")
+                    continue
 
                 category = await self.ai_classifier.classify_category(title, content)
 
@@ -123,7 +128,7 @@ class V2EXScraper:
                     'region_limit': self._extract_region(full_text),
                     'work_type': self._extract_work_type(full_text),
                     'source_site': 'v2ex',
-                    'original_url': topic.get('url', f"https://www.v2ex.com/t/{topic['id']}"),
+                    'original_url': original_url,
                     'description': content,
                     'date_posted': self._timestamp_to_iso(topic.get('created')),
                 }
@@ -139,6 +144,38 @@ class V2EXScraper:
         return jobs
 
 
+
+    @staticmethod
+    def _is_onsite(title: str, content: str) -> bool:
+        """Detect on-site / location-specific jobs that are NOT remote"""
+        import re
+        t = title.lower()
+        # Explicit on-site keywords in title
+        onsite_kw = ['on site', 'on-site', 'onsite', '坐班', '驻场', '线下',
+                      '本地优先', '上门', '到岗', '现场办公']
+        if any(kw in t for kw in onsite_kw):
+            return True
+
+        # City name in title with bracket pattern: [义乌], [成都], （深圳）
+        # These indicate location-specific jobs
+        city_bracket = re.search(r'[\[【（(]\s*[^\]】）)]*?(北京|上海|广州|深圳|杭州|成都|武汉|南京|苏州|西安|'
+                                 r'重庆|长沙|郑州|天津|青岛|大连|厦门|合肥|济南|福州|'
+                                 r'东莞|佛山|昆明|贵阳|珠海|义乌|无锡|宁波|温州|'
+                                 r'哈尔滨|沈阳|石家庄|太原|南昌|兰州|海口|'
+                                 r'拉萨|银川|呼和浩特|乌鲁木齐|南宁|'
+                                 r'常州|徐州|泉州|烟台|惠州|中山|嘉兴|绍兴'
+                                 r')[^\]】）)]*?[\]】）)]', t)
+        if city_bracket:
+            return True
+
+        # "城市名 + 个人外包/外包" pattern in title (like "济南个人外包")
+        city_prefix = re.search(r'(北京|上海|广州|深圳|杭州|成都|武汉|南京|苏州|西安|'
+                                r'重庆|长沙|郑州|天津|青岛|大连|厦门|合肥|济南|福州|'
+                                r'东莞|佛山|昆明|贵阳|珠海|义乌|无锡|宁波|温州)', t)
+        if city_prefix and not any(kw in t for kw in ['远程', 'remote', '在家', 'wfh']):
+            return True
+
+        return False
 
     def _extract_company(self, title: str, content: str) -> str:
         """Try to extract company name from title or content"""

@@ -20,8 +20,9 @@ class EleduckScraper:
     CATEGORY_ID = 5  # 社区帖子招聘 (Job postings)
     PER_PAGE = 25
     
-    def __init__(self):
+    def __init__(self, db=None):
         self.ai_classifier = AIClassifier()
+        self.db = db
 
     async def scrape(self) -> List[Dict]:
         """Fetch jobs from Eleduck API with pagination"""
@@ -79,12 +80,21 @@ class EleduckScraper:
                         # STAGE 1: Rule-based filter
                         if not self._is_dev_job(title, summary):
                             continue
-                        
-                        # STAGE 2: AI Semantic filter
+
+                        # Skip on-site / location-specific jobs
+                        if self._is_onsite(title, summary):
+                            continue
+
+                        # STAGE 2: DB dedup check (skip AI calls for existing jobs)
+                        original_url = f"{self.BASE_URL}/posts/{post_id}"
+                        if self.db and self.db.job_exists(title, original_url):
+                            continue
+
+                        # STAGE 3: AI Semantic filter
                         if not await self.ai_classifier.is_job_posting(title, summary):
                             print(f"  AI skipped: {title}")
                             continue
-                        
+
                         # Extract metadata from tags
                         tags = post.get("tags", [])
                         tag_names = [t.get("name", "") for t in tags]
@@ -101,7 +111,7 @@ class EleduckScraper:
                             'region_limit': 'CN',
                             'work_type': work_type,
                             'source_site': 'eleduck',
-                            'original_url': f"{self.BASE_URL}/posts/{post_id}",
+                            'original_url': original_url,
                             'apply_url': None,
                             'description': summary[:2000],
                             'date_posted': pub_date.isoformat() if pub_date else datetime.now(timezone.utc).isoformat(),
@@ -187,6 +197,39 @@ class EleduckScraper:
         if any(kw in text for kw in ['兼职', 'part-time', 'parttime', '合约', 'contract']):
             return 'parttime'
         return 'fulltime'
+
+    @staticmethod
+    def _is_onsite(title: str, description: str) -> bool:
+        """Detect on-site / location-specific jobs that are NOT remote"""
+        import re
+        t = title.lower()
+        text = (title + ' ' + description).lower()
+
+        # Explicit on-site keywords in title
+        onsite_kw = ['on site', 'on-site', 'onsite', '坐班', '驻场', '线下',
+                      '本地优先', '上门', '到岗', '现场办公']
+        if any(kw in t for kw in onsite_kw):
+            return True
+
+        # City name in title with bracket pattern: [义乌], [成都], （深圳）
+        city_bracket = re.search(r'[\[【（(]\s*[^\]】）)]*?(北京|上海|广州|深圳|杭州|成都|武汉|南京|苏州|西安|'
+                                 r'重庆|长沙|郑州|天津|青岛|大连|厦门|合肥|济南|福州|'
+                                 r'东莞|佛山|昆明|贵阳|珠海|义乌|无锡|宁波|温州|'
+                                 r'哈尔滨|沈阳|石家庄|太原|南昌|兰州|海口|'
+                                 r'拉萨|银川|呼和浩特|乌鲁木齐|南宁|'
+                                 r'常州|徐州|泉州|烟台|惠州|中山|嘉兴|绍兴'
+                                 r')[^\]】）)]*?[\]】）)]', t)
+        if city_bracket:
+            return True
+
+        # "城市名 + 个人外包/外包" pattern in title
+        city_prefix = re.search(r'(北京|上海|广州|深圳|杭州|成都|武汉|南京|苏州|西安|'
+                                r'重庆|长沙|郑州|天津|青岛|大连|厦门|合肥|济南|福州|'
+                                r'东莞|佛山|昆明|贵阳|珠海|义乌|无锡|宁波|温州)', t)
+        if city_prefix and not any(kw in t for kw in ['远程', 'remote', '在家', 'wfh']):
+            return True
+
+        return False
 
     def _is_dev_job(self, title: str, description: str) -> bool:
         """Check if it's a software development job (and not a resume or showcase)"""
