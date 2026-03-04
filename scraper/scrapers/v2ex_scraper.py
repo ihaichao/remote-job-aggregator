@@ -87,7 +87,8 @@ class V2EXScraper:
                     continue
 
                 # Skip job seeker posts (people looking for work, not job postings)
-                if any(kw in title for kw in ['接活', '求职', '找工作', '求兼职', '寻求', '接单', '接私活', '找兼职', '难找', '想找', '找远程', '在找']):
+                if any(kw in title for kw in ['接活', '求职', '找工作', '求兼职', '寻求', '接单', '接私活', '找兼职', '难找', '想找', '找远程', '在找',
+                                               '分享', '心得', '经历', '感悟', '故事', '总结', '反思', '记录']):
                     continue
 
                 # Skip non-tech roles (operations, marketing, HR, sales, design, SEO, etc.)
@@ -111,11 +112,6 @@ class V2EXScraper:
                 # STAGE 2: DB dedup check (skip AI calls for existing jobs)
                 original_url = topic.get('url', f"https://www.v2ex.com/t/{topic['id']}")
                 if self.db and self.db.job_exists(title, original_url):
-                    continue
-
-                # STAGE 3: AI Check (Semantic Filter)
-                if not await self.ai_classifier.is_job_posting(title, content):
-                    print(f"  V2EX AI skipped: {title}")
                     continue
 
                 category = await self.ai_classifier.classify_category(title, content)

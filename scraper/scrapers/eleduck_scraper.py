@@ -90,11 +90,6 @@ class EleduckScraper:
                         if self.db and self.db.job_exists(title, original_url):
                             continue
 
-                        # STAGE 3: AI Semantic filter
-                        if not await self.ai_classifier.is_job_posting(title, summary):
-                            print(f"  AI skipped: {title}")
-                            continue
-
                         # Extract metadata from tags
                         tags = post.get("tags", [])
                         tag_names = [t.get("name", "") for t in tags]
