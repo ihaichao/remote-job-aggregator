@@ -157,15 +157,16 @@ class V2EXScraper:
             return True
 
         # City name in title with bracket pattern: [义乌], [成都], （深圳）
-        # These indicate location-specific jobs
-        city_bracket = re.search(r'[\[【（(]\s*[^\]】）)]*?(北京|上海|广州|深圳|杭州|成都|武汉|南京|苏州|西安|'
+        # But skip if bracket also contains remote keywords like [深圳/可远程]
+        remote_kw = ['远程', 'remote', '在家', 'wfh']
+        city_bracket = re.search(r'([\[【（(][^\]】）)]*?(?:北京|上海|广州|深圳|杭州|成都|武汉|南京|苏州|西安|'
                                  r'重庆|长沙|郑州|天津|青岛|大连|厦门|合肥|济南|福州|'
                                  r'东莞|佛山|昆明|贵阳|珠海|义乌|无锡|宁波|温州|'
                                  r'哈尔滨|沈阳|石家庄|太原|南昌|兰州|海口|'
                                  r'拉萨|银川|呼和浩特|乌鲁木齐|南宁|'
                                  r'常州|徐州|泉州|烟台|惠州|中山|嘉兴|绍兴'
-                                 r')[^\]】）)]*?[\]】）)]', t)
-        if city_bracket:
+                                 r')[^\]】）)]*?[\]】）)])', t)
+        if city_bracket and not any(kw in city_bracket.group(1) for kw in remote_kw):
             return True
 
         # "城市名 + 个人外包/外包" pattern in title (like "济南个人外包")
