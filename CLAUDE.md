@@ -82,7 +82,7 @@ nginx/            Reverse proxy config for remotecn.com
 ```bash
 POSTGRES_PASSWORD=          # Required
 OPENROUTER_API_KEY=         # AI classification (required for VPS)
-OPENROUTER_MODEL=           # Default: deepseek/deepseek-chat-v3-0324
+OPENROUTER_MODEL=           # Default: google/gemini-2.5-flash-lite
 V2EX_TOKEN=                 # V2EX API access
 NEXT_PUBLIC_API_URL=        # Frontend API base URL
 ```

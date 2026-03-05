@@ -58,7 +58,7 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs
       V2EX_TOKEN: ${V2EX_TOKEN}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENROUTER_MODEL: deepseek/deepseek-chat-v3-0324
+      OPENROUTER_MODEL: google/gemini-2.5-flash-lite
     depends_on:
       postgres:
         condition: service_healthy

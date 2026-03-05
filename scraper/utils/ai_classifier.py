@@ -26,7 +26,7 @@ class AIClassifier:
             # Use OpenRouter (OpenAI-compatible API)
             self.backend = 'openrouter'
             self.base_url = base_url or os.getenv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
-            self.model = model or os.getenv('OPENROUTER_MODEL', 'qwen/qwen3-4b:free')
+            self.model = model or os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-flash-lite')
         else:
             # Fallback to local Ollama
             self.backend = 'ollama'
