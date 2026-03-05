@@ -33,21 +33,23 @@ class RemoteComScraper:
     async def scrape(self) -> List[Dict]:
         """Fetch remote engineer jobs from remote.com"""
         import asyncio
+        import hashlib
         all_jobs = []
-        
+        seen_hashes = set()  # Intra-session dedup by title hash
+
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             client.headers.update({
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             })
-            
+
             for page in range(1, self.MAX_PAGES + 1):
                 try:
                     params = {**self.QUERY_PARAMS, "page": page}
                     url = f"{self.BASE_URL}{self.JOBS_PATH}"
-                    
+
                     response = await client.get(url, params=params)
                     response.raise_for_status()
-                    
+
                     jobs = self._parse_page(response.text)
                     if not jobs:
                         break
@@ -55,8 +57,12 @@ class RemoteComScraper:
                     # Filter out existing jobs before AI calls
                     new_jobs = []
                     for job in jobs:
+                        title_hash = hashlib.sha256(job['title'].lower().strip().encode()).hexdigest()
+                        if title_hash in seen_hashes:
+                            continue
                         if self.db and self.db.job_exists(job['title'], job['original_url']):
                             continue
+                        seen_hashes.add(title_hash)
                         new_jobs.append(job)
 
                     # Classify categories using AI (only for new jobs)

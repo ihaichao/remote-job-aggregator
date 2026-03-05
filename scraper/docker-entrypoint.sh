@@ -10,5 +10,5 @@ echo "$(date): Running initial scrape..."
 cd /app && python main.py
 
 # Start cron in foreground
-echo "$(date): Starting cron scheduler (runs every hour)..."
+echo "$(date): Starting cron scheduler (runs daily at midnight)..."
 cron -f

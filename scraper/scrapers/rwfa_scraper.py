@@ -28,8 +28,10 @@ class RWFAScraper:
     async def scrape(self) -> List[Dict]:
         """Fetch remote engineer jobs from RWFA"""
         import asyncio
+        import hashlib
         all_jobs = []
-        
+        seen_hashes = set()  # Intra-session dedup by title hash
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             for page in range(1, self.MAX_PAGES + 1):
                 try:
@@ -38,10 +40,10 @@ class RWFAScraper:
                         url = f"{self.BASE_URL}{self.ENGINEER_JOBS_PATH}"
                     else:
                         url = f"{self.BASE_URL}{self.ENGINEER_JOBS_PATH}/page/{page}"
-                    
+
                     response = await client.get(url)
                     response.raise_for_status()
-                    
+
                     jobs = self._parse_page(response.text)
                     if not jobs:
                         break
@@ -49,8 +51,12 @@ class RWFAScraper:
                     # Filter out existing jobs before AI calls
                     new_jobs = []
                     for job in jobs:
+                        title_hash = hashlib.sha256(job['title'].lower().strip().encode()).hexdigest()
+                        if title_hash in seen_hashes:
+                            continue
                         if self.db and self.db.job_exists(job['title'], job['original_url']):
                             continue
+                        seen_hashes.add(title_hash)
                         new_jobs.append(job)
 
                     if new_jobs:
