@@ -66,21 +66,6 @@ services:
       - app-network
     restart: unless-stopped
 
-  nginx:
-    image: nginx:alpine
-    container_name: remote-jobs-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - app-network
-
 volumes:
   postgres_data:
 
