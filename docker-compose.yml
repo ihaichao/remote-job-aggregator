@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: remote-jobs-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -21,6 +22,7 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
     container_name: remote-jobs-backend
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/remote_jobs?schema=public
     ports:
@@ -39,6 +41,7 @@ services:
       args:
         NEXT_PUBLIC_GA_ID: G-KY60BL1119
     container_name: remote-jobs-frontend
+    restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_GA_ID: G-KY60BL1119
