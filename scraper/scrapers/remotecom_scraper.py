@@ -10,6 +10,7 @@ import json
 import httpx
 from typing import List, Dict
 from utils.ai_classifier import AIClassifier
+from utils.job_details import extract_remotecom_description
 
 
 class RemoteComScraper:
@@ -65,6 +66,8 @@ class RemoteComScraper:
                         seen_hashes.add(title_hash)
                         new_jobs.append(job)
 
+                    await self._enrich_descriptions(client, new_jobs)
+
                     # Classify categories using AI (only for new jobs)
                     for job in new_jobs:
                         job['category'] = await self.ai_classifier.classify_category(
@@ -81,6 +84,28 @@ class RemoteComScraper:
         
         return all_jobs
     
+    async def _enrich_descriptions(self, client: httpx.AsyncClient, jobs: List[Dict]) -> None:
+        """Fetch job detail pages to replace the title placeholder with the full description."""
+        import asyncio
+
+        semaphore = asyncio.Semaphore(3)
+
+        async def fetch_description(job: Dict) -> None:
+            # Listing-only jobs (no company slug) have no detail page
+            if "?jobId=" in job["original_url"]:
+                return
+            async with semaphore:
+                try:
+                    response = await client.get(job["original_url"])
+                    response.raise_for_status()
+                    description = extract_remotecom_description(response.text)
+                    if description:
+                        job["description"] = description
+                except Exception as e:
+                    print(f"  Remote.com detail error for {job['original_url']}: {e}")
+
+        await asyncio.gather(*(fetch_description(job) for job in jobs))
+
     def _parse_page(self, html: str) -> List[Dict]:
         """Parse job listings from embedded Next.js JSON data"""
         jobs = []

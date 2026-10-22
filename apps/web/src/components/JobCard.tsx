@@ -4,6 +4,7 @@ import { Job } from '@/lib/api';
 import { CATEGORY_LABELS, WORK_TYPE_LABELS } from '@/lib/constants';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { markdownToPlainText } from '@/lib/utils';
 import { ChevronRight, Clock } from 'lucide-react';
 
 interface JobCardProps {
@@ -64,7 +65,7 @@ export function JobCard({ job }: JobCardProps) {
       {/* Description */}
       {job.description && (
         <p className="mt-4 text-sm text-muted-foreground leading-relaxed line-clamp-2">
-          {job.description.slice(0, 200)}...
+          {markdownToPlainText(job.description).slice(0, 200)}...
         </p>
       )}
     </Link>

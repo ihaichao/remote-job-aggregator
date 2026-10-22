@@ -5,8 +5,10 @@ import { ArrowLeft, Clock, ExternalLink } from 'lucide-react'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { Badge } from '@/components/ui/badge'
+import { JobDescription } from '@/components/JobDescription'
 import { getServerJob, hasSubstantiveDescription } from '@/lib/api'
 import { CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
+import { markdownToPlainText } from '@/lib/utils'
 
 interface JobPageProps {
   params: { id: string }
@@ -22,7 +24,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
   const job = await loadJob(params.id)
   if (!job) return { title: '职位不存在' }
 
-  const description = (job.description || job.title).replace(/\s+/g, ' ').slice(0, 150)
+  const description = markdownToPlainText(job.description || job.title).slice(0, 150)
   return {
     title: job.title,
     description,
@@ -103,9 +105,7 @@ export default async function JobPage({ params }: JobPageProps) {
           <div className="mt-6 pt-6 border-t border-border">
             <h2 className="text-lg font-semibold text-foreground mb-3">职位描述</h2>
             {showDescription ? (
-              <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line break-words">
-                {job.description}
-              </div>
+              <JobDescription markdown={job.description!} />
             ) : (
               <p className="text-sm text-muted-foreground">
                 该职位的详细要求请查看原始招聘页面。
@@ -118,7 +118,7 @@ export default async function JobPage({ params }: JobPageProps) {
               href={job.applyUrl || job.originalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:opacity-90 transition-opacity"
+              className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:opacity-90 transition-opacity"
             >
               查看原帖并申请
               <ExternalLink className="h-4 w-4" />

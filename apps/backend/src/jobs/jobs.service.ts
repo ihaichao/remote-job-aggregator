@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+const LIST_DESCRIPTION_PREVIEW = 500;
+
 @Injectable()
 export class JobsService {
   constructor(private prisma: PrismaService) {}
@@ -37,8 +39,14 @@ export class JobsService {
       this.prisma.job.count({ where }),
     ]);
 
+    // Full descriptions can be long; list views only need a preview
+    const previews = data.map((job) => ({
+      ...job,
+      description: job.description ? job.description.slice(0, LIST_DESCRIPTION_PREVIEW) : job.description,
+    }));
+
     return {
-      data,
+      data: previews,
       pagination: {
         page,
         limit,

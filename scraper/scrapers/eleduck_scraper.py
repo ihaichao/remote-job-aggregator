@@ -10,6 +10,7 @@ import httpx
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict
 from utils.ai_classifier import AIClassifier
+from utils.job_details import fetch_eleduck_description
 
 
 class EleduckScraper:
@@ -94,6 +95,9 @@ class EleduckScraper:
                         tags = post.get("tags", [])
                         tag_names = [t.get("name", "") for t in tags]
                         
+                        # Summary from the list API is truncated; fetch the full post body
+                        description = await fetch_eleduck_description(client, post_id) or summary
+
                         company = self._extract_company(title, summary)
                         category = await self.ai_classifier.classify_category(title, summary)
                         work_type = self._extract_work_type_from_tags(tag_names, title, summary)
@@ -108,7 +112,7 @@ class EleduckScraper:
                             'source_site': 'eleduck',
                             'original_url': original_url,
                             'apply_url': None,
-                            'description': summary[:2000],
+                            'description': description,
                             'date_posted': pub_date.isoformat() if pub_date else datetime.now(timezone.utc).isoformat(),
                         }
                         all_jobs.append(job)

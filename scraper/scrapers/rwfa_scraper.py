@@ -12,14 +12,15 @@ from typing import List, Dict
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from utils.ai_classifier import AIClassifier
+from utils.job_details import extract_rwfa_description
 
 
 class RWFAScraper:
     """Scraper for realworkfromanywhere.com"""
 
     BASE_URL = "https://www.realworkfromanywhere.com"
-    ENGINEER_JOBS_PATH = "/remote-engineer-jobs"
-    MAX_PAGES = 15  # Scrape all 15 pages
+    ENGINEER_JOBS_PATH = "/remote-software-developer-jobs"
+    MAX_PAGES = 15  # The site currently lists everything on one page; stop at the first 404
 
     def __init__(self, db=None):
         self.ai_classifier = AIClassifier()
@@ -32,16 +33,18 @@ class RWFAScraper:
         all_jobs = []
         seen_hashes = set()  # Intra-session dedup by title hash
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             for page in range(1, self.MAX_PAGES + 1):
                 try:
-                    # Pagination: /remote-engineer-jobs/page/N for page > 1
+                    # Pagination: /remote-software-developer-jobs/page/N for page > 1
                     if page == 1:
                         url = f"{self.BASE_URL}{self.ENGINEER_JOBS_PATH}"
                     else:
                         url = f"{self.BASE_URL}{self.ENGINEER_JOBS_PATH}/page/{page}"
 
                     response = await client.get(url)
+                    if response.status_code == 404:
+                        break
                     response.raise_for_status()
 
                     jobs = self._parse_page(response.text)
@@ -60,7 +63,7 @@ class RWFAScraper:
                         new_jobs.append(job)
 
                     if new_jobs:
-                        await self._enrich_apply_urls(client, new_jobs)
+                        await self._enrich_from_detail_pages(client, new_jobs)
                         # Classify categories using AI (only for new jobs)
                         for job in new_jobs:
                             job['category'] = await self.ai_classifier.classify_category(
@@ -76,8 +79,8 @@ class RWFAScraper:
         
         return all_jobs
 
-    async def _enrich_apply_urls(self, client: httpx.AsyncClient, jobs: List[Dict]) -> None:
-        """Fetch job detail pages to extract apply URLs."""
+    async def _enrich_from_detail_pages(self, client: httpx.AsyncClient, jobs: List[Dict]) -> None:
+        """Fetch job detail pages to extract apply URLs and full descriptions."""
         import asyncio
 
         semaphore = asyncio.Semaphore(5)
@@ -93,6 +96,9 @@ class RWFAScraper:
                     response = await client.get(url)
                     response.raise_for_status()
                     job["apply_url"] = self._extract_apply_url(response.text)
+                    description = extract_rwfa_description(response.text)
+                    if description:
+                        job["description"] = description
                 except Exception:
                     job["apply_url"] = None
 
