@@ -1,4 +1,5 @@
 import { JobList } from '@/components/JobList';
+import { SiteFooter } from '@/components/SiteFooter';
 import { getServerJobs } from '@/lib/api';
 
 export default async function Home() {
@@ -41,14 +42,7 @@ export default async function Home() {
         />
       </div>
 
-      {/* Footer */}
-      <footer className="bg-foreground text-background/80 border-t border-border">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <p className="text-sm text-background/60 text-center">
-            Copyright © 2025-2026 RemoteCN. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

@@ -2,8 +2,9 @@
 
 import { Job } from '@/lib/api';
 import { CATEGORY_LABELS, WORK_TYPE_LABELS } from '@/lib/constants';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Clock } from 'lucide-react';
+import { ChevronRight, Clock } from 'lucide-react';
 
 interface JobCardProps {
   job: Job;
@@ -13,10 +14,8 @@ export function JobCard({ job }: JobCardProps) {
   const timeAgo = getTimeAgo(job.datePosted || job.createdAt);
 
   return (
-    <a
-      href={job.applyUrl || job.originalUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={`/jobs/${job.id}`}
       className="group block bg-card border border-border rounded-xl p-5 transition-all duration-300 hover:shadow-lg hover:border-accent/30 hover:-translate-y-0.5"
     >
       {/* Gradient overlay on hover */}
@@ -29,7 +28,7 @@ export function JobCard({ job }: JobCardProps) {
             <h3 className="text-lg text-foreground leading-snug group-hover:text-accent transition-colors line-clamp-2">
               {job.title}
             </h3>
-            <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
           </div>
 
           {/* Category badges */}
@@ -68,7 +67,7 @@ export function JobCard({ job }: JobCardProps) {
           {job.description.slice(0, 200)}...
         </p>
       )}
-    </a>
+    </Link>
   );
 }
 

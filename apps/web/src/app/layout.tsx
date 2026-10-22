@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Source_Sans_3, Calistoga, JetBrains_Mono, Noto_Sans_SC } from 'next/font/google'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
+import { BASE_URL } from '@/lib/site'
 import './globals.css'
 
 const sourceSans = Source_Sans_3({
@@ -28,8 +29,6 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains',
   display: 'swap',
 })
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://remotecn.com'
 
 export const metadata: Metadata = {
   title: {

@@ -41,7 +41,9 @@ export const WORK_TYPE_LABELS: Record<string, string> = {
 
 export const SOURCE_LABELS: Record<string, string> = {
   v2ex: 'V2EX',
-  rwfa: 'RWFA',
+  rwfa: 'Real Work From Anywhere',
+  eleduck: '电鸭社区',
+  remotecom: 'Remote.com',
   remoteok: 'RemoteOK',
   weworkremotely: 'WeWorkRemotely',
   linkedin: 'LinkedIn',

@@ -96,6 +96,25 @@ export async function getServerJobs(filters?: JobFilters): Promise<JobsResponse>
   }
 }
 
+// Server-side fetch for a single job; returns null when missing or on error
+export async function getServerJob(id: number): Promise<Job | null> {
+  try {
+    const res = await fetch(`${SERVER_API_BASE}/jobs/${id}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return res.json();
+  } catch (error) {
+    console.error('SSR fetch job error:', error);
+    return null;
+  }
+}
+
+// Whether a job has a real description, not just an echo of its title.
+// Thin jobs are kept out of the sitemap and marked noindex.
+export function hasSubstantiveDescription(job: Job): boolean {
+  const desc = job.description?.trim() ?? '';
+  return desc.length >= 80 && desc !== job.title.trim();
+}
+
 export async function getJob(id: number): Promise<Job> {
   const res = await fetch(`${API_BASE}/jobs/${id}`, { cache: 'no-store' });
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
+import { Controller, Get, Query, Param, NotFoundException } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 
 @Controller('jobs')
@@ -26,6 +26,8 @@ export class JobsController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return this.jobsService.findOne(+id);
+    const job = Number.isInteger(+id) ? await this.jobsService.findOne(+id) : null;
+    if (!job) throw new NotFoundException('Job not found');
+    return job;
   }
 }
