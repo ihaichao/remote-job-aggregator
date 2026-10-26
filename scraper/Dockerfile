@@ -17,7 +17,8 @@ COPY . .
 
 # Create cron job file
 RUN printf "0 0,12 * * * cd /app && /usr/local/bin/python main.py >> /var/log/scraper.log 2>&1\n\
-0 4 * * * cd /app && /usr/local/bin/python check_jobs.py >> /var/log/scraper.log 2>&1\n" > /etc/cron.d/scraper-cron \
+0 4 * * * cd /app && /usr/local/bin/python check_jobs.py >> /var/log/scraper.log 2>&1\n\
+0 5 * * 0 cd /app && /usr/local/bin/python cleanup_jobs.py >> /var/log/scraper.log 2>&1\n" > /etc/cron.d/scraper-cron \
     && chmod 0644 /etc/cron.d/scraper-cron \
     && crontab /etc/cron.d/scraper-cron \
     && touch /var/log/scraper.log

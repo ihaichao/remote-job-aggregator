@@ -12,6 +12,7 @@ from typing import List, Dict
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from utils.ai_classifier import AIClassifier
+from utils.retention import is_past_retention
 from utils.job_details import extract_rwfa_description
 
 
@@ -56,6 +57,8 @@ class RWFAScraper:
                     for job in jobs:
                         title_hash = hashlib.sha256(job['title'].lower().strip().encode()).hexdigest()
                         if title_hash in seen_hashes:
+                            continue
+                        if is_past_retention(job['date_posted']):
                             continue
                         if self.db and self.db.job_exists(job['title'], job['original_url']):
                             continue

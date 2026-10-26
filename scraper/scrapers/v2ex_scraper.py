@@ -2,6 +2,7 @@ import httpx
 from typing import List, Dict
 import os
 from utils.ai_classifier import AIClassifier
+from utils.retention import is_past_retention
 
 class V2EXScraper:
     """V2EX Scraper using official API v2"""
@@ -107,6 +108,10 @@ class V2EXScraper:
 
                 # Skip on-site / location-specific jobs
                 if self._is_onsite(title, content):
+                    continue
+
+                # Older than the retention window: cleanup_jobs.py would delete it again
+                if is_past_retention(self._timestamp_to_iso(topic.get('created'))):
                     continue
 
                 # STAGE 2: DB dedup check (skip AI calls for existing jobs)

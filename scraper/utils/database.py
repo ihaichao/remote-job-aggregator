@@ -4,6 +4,8 @@ import re
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 
+from .retention import is_past_retention
+
 class DatabaseClient:
     def __init__(self, connection_string: str):
         self.conn = psycopg2.connect(connection_string)
@@ -25,6 +27,9 @@ class DatabaseClient:
     def insert_job(self, job_data: Dict) -> Optional[int]:
         """Insert job data, return job_id"""
         try:
+            if is_past_retention(job_data.get('date_posted')):
+                return None
+
             content_hash = self._generate_hash(job_data)
 
             # Check if already exists by content hash
