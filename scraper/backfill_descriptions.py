@@ -24,9 +24,10 @@ import psycopg2
 from dotenv import load_dotenv
 
 from utils.job_details import (
+    ELEDUCK_POST_API,
     extract_remotecom_description,
     extract_rwfa_description,
-    fetch_eleduck_description,
+    parse_eleduck_post,
 )
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -46,12 +47,12 @@ HEADERS = {
 
 
 async def fetch_description(client: httpx.AsyncClient, source_site: str, url: str) -> Optional[str]:
+    """Fetch and parse one job's description; HTTP errors are raised so the caller can report them."""
     if source_site == 'eleduck':
         post_id = url.rstrip('/').split('/')[-1]
-        return await fetch_eleduck_description(client, post_id)
-
-    if source_site == 'remotecom' and '?jobId=' in url:
-        return None  # No detail page for listing-only jobs
+        response = await client.get(ELEDUCK_POST_API.format(post_id=post_id))
+        response.raise_for_status()
+        return parse_eleduck_post(response.json())
 
     response = await client.get(url)
     response.raise_for_status()
@@ -91,22 +92,35 @@ async def main():
     print(f"Backfilling {len(rows)} jobs from {', '.join(sources)}{' (dry run)' if args.dry_run else ''}")
 
     semaphore = asyncio.Semaphore(MAX_CONCURRENT)
-    stats = {'updated': 0, 'unchanged': 0, 'failed': 0}
+    stats = {'updated': 0, 'unchanged': 0, 'skipped': 0, 'failed': 0}
 
     async with httpx.AsyncClient(headers=HEADERS, timeout=30.0, follow_redirects=True) as client:
         async def process(job_id: int, source_site: str, url: str, old: str):
+            if source_site == 'remotecom' and '?jobId=' in url:
+                stats['skipped'] += 1  # No detail page for listing-only jobs
+                return
+
             async with semaphore:
                 try:
                     new = await fetch_description(client, source_site, url)
+                except httpx.HTTPStatusError as e:
+                    print(f"  [{job_id}] {source_site} failed: HTTP {e.response.status_code} for {url}")
+                    stats['failed'] += 1
+                    return
                 except Exception as e:
-                    print(f"  [{job_id}] {source_site} fetch failed: {e}")
+                    print(f"  [{job_id}] {source_site} failed: {type(e).__name__}: {e} for {url}")
                     stats['failed'] += 1
                     return
                 finally:
                     await asyncio.sleep(0.5)
 
+            if not new:
+                print(f"  [{job_id}] {source_site} failed: no description found in response for {url}")
+                stats['failed'] += 1
+                return
+
             # Only replace when the fetched text is a real improvement
-            if not new or len(new) <= len(old.strip()):
+            if len(new) <= len(old.strip()):
                 stats['unchanged'] += 1
                 return
 
@@ -123,7 +137,10 @@ async def main():
 
     cursor.close()
     conn.close()
-    print(f"\nDone: {stats['updated']} updated, {stats['unchanged']} unchanged, {stats['failed']} failed")
+    print(
+        f"\nDone: {stats['updated']} updated, {stats['unchanged']} unchanged, "
+        f"{stats['skipped']} skipped (no detail page), {stats['failed']} failed"
+    )
 
 
 if __name__ == '__main__':

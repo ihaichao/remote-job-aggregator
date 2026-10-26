@@ -43,21 +43,25 @@ def clean_markdown(text: str) -> str:
     return text[:MAX_DESCRIPTION_LEN]
 
 
+def parse_eleduck_post(payload: dict) -> Optional[str]:
+    """Extract the post body from an Eleduck post API response (Markdown source preferred)."""
+    post = payload.get('post') or {}
+    raw = post.get('raw_content') or ''
+    if raw.strip():
+        # Keep backslash escapes such as "\\*": Markdown renders them as literal characters
+        return clean_markdown(raw)
+    return html_to_markdown(post.get('content') or '') or None
+
+
 async def fetch_eleduck_description(client: httpx.AsyncClient, post_id: str) -> Optional[str]:
-    """Fetch full post body from the Eleduck API (Markdown source preferred)."""
+    """Fetch the full post body from the Eleduck API; returns None on any error."""
     try:
         response = await client.get(ELEDUCK_POST_API.format(post_id=post_id))
         response.raise_for_status()
-        post = response.json().get('post') or {}
+        return parse_eleduck_post(response.json())
     except Exception as e:
         print(f"  Eleduck detail {post_id} error: {e}")
         return None
-
-    raw = post.get('raw_content') or ''
-    if raw.strip():
-        # raw_content escapes some Markdown characters, e.g. "\\*"
-        return clean_markdown(raw.replace('\\*', '*'))
-    return html_to_markdown(post.get('content') or '') or None
 
 
 def extract_rwfa_description(html: str) -> Optional[str]:
