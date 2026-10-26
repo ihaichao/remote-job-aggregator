@@ -41,6 +41,10 @@ SOURCES = ['eleduck', 'rwfa', 'remotecom']
 # Keep the load on source sites low
 MAX_CONCURRENT = 3
 
+# Retry connection resets, throttling and server errors
+MAX_ATTEMPTS = 3
+RETRY_STATUS = {429, 500, 502, 503, 504}
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 }
@@ -59,6 +63,19 @@ async def fetch_description(client: httpx.AsyncClient, source_site: str, url: st
     if source_site == 'rwfa':
         return extract_rwfa_description(response.text)
     return extract_remotecom_description(response.text)
+
+
+async def fetch_with_retry(client: httpx.AsyncClient, source_site: str, url: str) -> Optional[str]:
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            return await fetch_description(client, source_site, url)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code not in RETRY_STATUS or attempt == MAX_ATTEMPTS:
+                raise
+        except httpx.TransportError:
+            if attempt == MAX_ATTEMPTS:
+                raise
+        await asyncio.sleep(2 ** attempt)
 
 
 async def main():
@@ -92,7 +109,7 @@ async def main():
     print(f"Backfilling {len(rows)} jobs from {', '.join(sources)}{' (dry run)' if args.dry_run else ''}")
 
     semaphore = asyncio.Semaphore(MAX_CONCURRENT)
-    stats = {'updated': 0, 'unchanged': 0, 'skipped': 0, 'failed': 0}
+    stats = {'updated': 0, 'unchanged': 0, 'skipped': 0, 'gone': 0, 'failed': 0}
 
     async with httpx.AsyncClient(headers=HEADERS, timeout=30.0, follow_redirects=True) as client:
         async def process(job_id: int, source_site: str, url: str, old: str):
@@ -102,8 +119,12 @@ async def main():
 
             async with semaphore:
                 try:
-                    new = await fetch_description(client, source_site, url)
+                    new = await fetch_with_retry(client, source_site, url)
                 except httpx.HTTPStatusError as e:
+                    if e.response.status_code in (404, 410):
+                        # Deleted at the source; check_jobs.py marks these inactive
+                        stats['gone'] += 1
+                        return
                     print(f"  [{job_id}] {source_site} failed: HTTP {e.response.status_code} for {url}")
                     stats['failed'] += 1
                     return
@@ -139,8 +160,11 @@ async def main():
     conn.close()
     print(
         f"\nDone: {stats['updated']} updated, {stats['unchanged']} unchanged, "
-        f"{stats['skipped']} skipped (no detail page), {stats['failed']} failed"
+        f"{stats['skipped']} skipped (no detail page), "
+        f"{stats['gone']} gone (deleted at source), {stats['failed']} failed"
     )
+    if stats['gone']:
+        print("Run `python check_jobs.py` to hide the deleted jobs from the site.")
 
 
 if __name__ == '__main__':

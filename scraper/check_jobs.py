@@ -22,6 +22,8 @@ import httpx
 import psycopg2
 from dotenv import load_dotenv
 
+from utils.job_details import ELEDUCK_POST_API
+
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 if not os.getenv('DATABASE_URL') and os.getenv('POSTGRES_PASSWORD'):
@@ -44,13 +46,7 @@ def is_job_expired(source_site: str, status_code: int, body: str) -> bool:
 
     body_lower = body[:5000].lower()
 
-    if source_site == 'eleduck':
-        # Eleduck deleted posts return 404 (handled above)
-        # Some may show error page
-        if '页面不存在' in body or '帖子已删除' in body or '404' in body_lower:
-            return True
-
-    elif source_site == 'v2ex':
+    if source_site == 'v2ex':
         if '主题未找到' in body or 'topic not found' in body_lower:
             return True
         # V2EX sometimes shows "该主题已被移除" or similar
@@ -88,11 +84,30 @@ def is_job_expired(source_site: str, status_code: int, body: str) -> bool:
     return False
 
 
+async def check_eleduck_post(client: httpx.AsyncClient, job_id: int, url: str) -> dict:
+    """Check an Eleduck post via its API.
+
+    eleduck.com post pages redirect bots to a verification page that always
+    returns 200, so deleted posts look alive there. The API answers 404
+    (post_not_found) for deleted or hidden posts.
+    """
+    post_id = url.rstrip('/').split('/')[-1]
+    response = await client.get(ELEDUCK_POST_API.format(post_id=post_id))
+    # Only a 404 means the post is gone; 403/429/5xx may be throttling
+    return {
+        'id': job_id, 'url': url, 'source': 'eleduck',
+        'status': response.status_code, 'expired': response.status_code == 404,
+    }
+
+
 async def check_job(client: httpx.AsyncClient, semaphore: asyncio.Semaphore,
                     job_id: int, source_site: str, url: str) -> dict:
     """Check a single job URL. Returns result dict."""
     async with semaphore:
         try:
+            if source_site == 'eleduck':
+                return await check_eleduck_post(client, job_id, url)
+
             response = await client.get(url)
             # Check final URL after redirects (e.g. greenhouse ?error=true redirect)
             final_url = str(response.url)
@@ -164,6 +179,8 @@ async def main():
             if result['expired']:
                 expired_ids.append(result['id'])
                 print(f"  [{done}/{total}] EXPIRED: id={result['id']} status={result['status']} {result['url']}", file=sys.stderr)
+            elif not isinstance(result['status'], int):
+                print(f"  [{done}/{total}] ERROR (kept active): id={result['id']} {result['status']} {result['url']}", file=sys.stderr)
             elif done % 50 == 0:
                 print(f"  [{done}/{total}] checked...", file=sys.stderr)
 
