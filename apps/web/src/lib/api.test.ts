@@ -1,7 +1,9 @@
 import { vi, it, expect, afterEach } from 'vitest';
 import { getServerJobStats, EMPTY_STATS } from './api';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 it('returns EMPTY_STATS when the backend is down', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));

@@ -1,49 +1,35 @@
-import { JobList } from '@/components/JobList';
 import { SiteFooter } from '@/components/SiteFooter';
-import { getServerJobs } from '@/lib/api';
+import { SiteHeader } from '@/components/SiteHeader';
+import { JobBoard } from '@/components/home/JobBoard';
+import { getServerJobStats, getServerJobs } from '@/lib/api';
+import { PAGE_SIZE, mergeJobs, parseListQuery, serializeListQuery } from '@/lib/listQuery';
 
-export default async function Home() {
-  // Fetch initial jobs on server for SSR (SEO-friendly)
-  const initialData = await getServerJobs({ page: 1, limit: 10 });
-  
+interface HomeProps {
+  searchParams: Record<string, string | string[] | undefined>;
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  const q = parseListQuery(searchParams);
+  const filters = {
+    keyword: q.keyword || undefined,
+    category: q.category || undefined,
+    regionLimit: q.regionLimit || undefined,
+    workType: q.workType || undefined,
+  };
+
+  // Render every page the URL asks for, so coming back from a detail page restores the list
+  const [stats, ...pages] = await Promise.all([
+    getServerJobStats(),
+    ...Array.from({ length: q.page }, (_, i) => getServerJobs({ ...filters, page: i + 1, limit: PAGE_SIZE })),
+  ]);
+  const jobs = pages.reduce((acc, res) => mergeJobs(acc, res.data), [] as (typeof pages)[number]['data']);
+  const total = pages[0]?.pagination.total ?? 0;
+
   return (
-    <main className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <header className="relative overflow-hidden border-b border-border bg-card">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-accent-secondary/5" />
-        <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-20">
-          {/* Section Label */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-4 py-1.5 mb-6">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-            <span className="font-mono text-xs uppercase tracking-[0.15em] text-accent">
-              Remote Jobs for Chinese Developers
-            </span>
-          </div>
-          
-          {/* Headline */}
-          <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground leading-tight">
-            面向<span className="gradient-text">中国开发者</span>的
-            <span className="gradient-text">远程工作</span>
-            平台
-          </h1>
-          
-          {/* Subtitle */}
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
-            实时聚合全网高质量远程开发岗位，让你轻松找到理想的远程工作机会
-          </p>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-10">
-        <JobList 
-          initialJobs={initialData.data} 
-          initialPagination={initialData.pagination}
-        />
-      </div>
-
+    <main className="min-h-screen">
+      <SiteHeader />
+      <JobBoard key={serializeListQuery(q)} initialQuery={q} initialJobs={jobs} initialTotal={total} stats={stats} />
       <SiteFooter />
     </main>
   );
 }
-

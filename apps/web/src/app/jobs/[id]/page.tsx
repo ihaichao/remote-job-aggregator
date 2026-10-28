@@ -7,6 +7,7 @@ import { SiteFooter } from '@/components/SiteFooter'
 import { Badge } from '@/components/ui/badge'
 import { JobDescription } from '@/components/JobDescription'
 import { getServerJob, hasSubstantiveDescription } from '@/lib/api'
+import { displayCompany } from '@/lib/jobDisplay'
 import { CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
 import { markdownToPlainText } from '@/lib/utils'
 
@@ -46,13 +47,14 @@ export default async function JobPage({ params }: JobPageProps) {
   })
   const source = SOURCE_LABELS[job.sourceSite] || job.sourceSite
   const showDescription = hasSubstantiveDescription(job)
+  const company = displayCompany(job.company)
 
   const facts = [
     { label: '工作类型', value: WORK_TYPE_LABELS[job.workType] || job.workType },
     { label: '地区要求', value: getRegionLabel(job.regionLimit) },
     { label: '发布时间', value: postedAt },
     { label: '来源', value: source },
-    ...(job.company ? [{ label: '公司', value: job.company }] : []),
+    ...(company ? [{ label: '公司', value: company }] : []),
   ]
 
   return (

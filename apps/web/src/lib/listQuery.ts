@@ -53,3 +53,10 @@ export function mergeJobs<T extends { id: number }>(existing: T[], incoming: T[]
   const seen = new Set(existing.map((job) => job.id));
   return [...existing, ...incoming.filter((job) => !seen.has(job.id))];
 }
+
+// Any filter change starts over from page 1; a page-only patch keeps the filters
+export function applyQueryPatch(q: ListQuery, patch: Partial<ListQuery>): ListQuery {
+  const next = { ...q, ...patch };
+  const filterChanged = (['keyword', 'category', 'regionLimit', 'workType'] as const).some((k) => next[k] !== q[k]);
+  return filterChanged ? { ...next, page: 1 } : next;
+}

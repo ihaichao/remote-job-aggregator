@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseListQuery, serializeListQuery, mergeJobs, EMPTY_QUERY } from './listQuery';
+import { parseListQuery, serializeListQuery, mergeJobs, applyQueryPatch, EMPTY_QUERY } from './listQuery';
 
 describe('parseListQuery', () => {
   it('reads valid params', () => {
@@ -30,5 +30,21 @@ describe('serializeListQuery', () => {
 describe('mergeJobs', () => {
   it('appends without duplicates', () => {
     expect(mergeJobs([{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 3 }]).map((j) => j.id)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('applyQueryPatch', () => {
+  const base = { ...EMPTY_QUERY, category: 'ai', page: 3 };
+
+  it('resets to page 1 when a filter changes', () => {
+    expect(applyQueryPatch(base, { category: 'backend' })).toEqual({ ...base, category: 'backend', page: 1 });
+  });
+
+  it('keeps the page when only the page changes', () => {
+    expect(applyQueryPatch(base, { page: 4 })).toEqual({ ...base, page: 4 });
+  });
+
+  it('keeps the page when a filter is set to its current value', () => {
+    expect(applyQueryPatch(base, { category: 'ai' })).toEqual(base);
   });
 });
