@@ -15,6 +15,23 @@ export const CATEGORY_LABELS: Record<string, string> = {
   other: '其他',
 };
 
+// Full category names used on the homepage (mirrors packages/shared JOB_CATEGORY_LABELS)
+export const JOB_CATEGORY_LABELS: Record<string, string> = {
+  frontend: '前端开发',
+  backend: '后端开发',
+  fullstack: '全栈开发',
+  mobile: '移动开发',
+  game: '游戏开发',
+  devops: 'DevOps',
+  ai: 'AI/机器学习',
+  blockchain: '区块链',
+  quant: '量化交易',
+  security: '安全',
+  testing: '测试',
+  data: '大数据',
+  embedded: '嵌入式',
+};
+
 export const COMMON_REGIONS: Record<string, string> = {
   worldwide: '🌍 全球',
   CN: '🇨🇳 中国',
