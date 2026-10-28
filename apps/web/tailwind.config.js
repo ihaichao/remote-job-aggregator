@@ -9,6 +9,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        peach: { DEFAULT: "#ffd9b8", 2: "#ffe8d4" },
+        cream: "#fffaf5",
+        ink: "#0a0a0a",
+        sep: "#a1a1a1",
+        line: "#e9ddd1",
+        orange: "#ff8a1f",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -56,12 +62,9 @@ module.exports = {
         'md': '0 4px 6px rgba(0,0,0,0.07)',
         'lg': '0 10px 15px rgba(0,0,0,0.08)',
         'xl': '0 20px 25px rgba(0,0,0,0.1)',
-        'accent': '0 4px 14px rgba(0,82,255,0.25)',
-        'accent-lg': '0 8px 24px rgba(0,82,255,0.35)',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-calistoga)', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'var(--font-noto-sc)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-jetbrains)', 'monospace'],
       },
       animation: {

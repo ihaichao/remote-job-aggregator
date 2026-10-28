@@ -4,59 +4,37 @@
 
 @layer base {
   :root {
-    /* Minimalist Modern Design System */
-    --background: 210 20% 98%;  /* #FAFAFA - warm off-white */
-    --foreground: 222 47% 11%;  /* #0F172A - Slate-900 */
-    
-    --card: 0 0% 100%;          /* #FFFFFF */
-    --card-foreground: 222 47% 11%;
-    
+    /* Peach theme (see docs/superpowers/specs/2026-10-28-homepage-redesign-design.md) */
+    --background: 30 100% 98%;        /* cream #fffaf5 */
+    --foreground: 0 0% 4%;            /* ink #0a0a0a */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    
-    --primary: 220 100% 50%;    /* #0052FF - Electric Blue */
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 210 40% 96%;   /* #F1F5F9 - Slate-100 */
-    --secondary-foreground: 222 47% 11%;
-    
-    --muted: 210 40% 96%;       /* #F1F5F9 */
-    --muted-foreground: 215 16% 47%;  /* #64748B - Slate-500 */
-    
-    --accent: 220 100% 50%;     /* #0052FF - Electric Blue */
-    --accent-secondary: 222 100% 65%;  /* #4D7CFF */
-    --accent-foreground: 0 0% 100%;
-    
+    --popover-foreground: 0 0% 4%;
+
+    --primary: 29 100% 56%;           /* orange #ff8a1f */
+    --primary-foreground: 0 0% 4%;
+
+    --secondary: 30 50% 95%;          /* #f7f1eb */
+    --secondary-foreground: 0 0% 4%;
+
+    --muted: 30 50% 95%;
+    --muted-foreground: 228 9% 46%;   /* #6b7080 */
+
+    --accent: 29 100% 56%;            /* orange */
+    --accent-secondary: 28 100% 75%;
+    --accent-foreground: 0 0% 4%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
-    --border: 214 32% 91%;      /* #E2E8F0 - Slate-200 */
-    --input: 214 32% 91%;
-    --ring: 220 100% 50%;       /* #0052FF */
-    
-    --radius: 0.75rem;
-  }
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 220 100% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 220 100% 50%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 220 100% 50%;
+    --border: 30 37% 87%;             /* line #e9ddd1 */
+    --input: 30 37% 87%;
+    --ring: 0 0% 4%;
+
+    --radius: 0.75rem;
   }
 }
 
@@ -64,14 +42,23 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: var(--font-source-sans), var(--font-noto-sc), system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans), var(--font-noto-sc), system-ui, -apple-system, sans-serif;
+    font-weight: 400;
   }
-  
-  h1, h2, h3 {
-    font-family: var(--font-calistoga), Georgia, serif;
+}
+
+@layer components {
+  /* Orange button with ink outline and a solid drop shadow */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-[10px] border-2 border-ink bg-orange px-4 py-2 text-sm font-medium text-ink transition;
+    box-shadow: 0 3px 0 theme('colors.ink');
+  }
+  .btn-primary:hover {
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 theme('colors.ink');
   }
 }
 

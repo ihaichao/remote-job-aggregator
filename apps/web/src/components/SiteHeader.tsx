@@ -1,17 +1,16 @@
 import Link from 'next/link';
-import { NAV_LINKS, SITE_NAME } from '@/lib/site';
+import { NAV_LINKS } from '@/lib/site';
+import { Logo } from './Logo';
 
-// Compact top bar for inner pages (the home page has its own hero header)
+// Sticky top bar shared by every page
 export function SiteHeader() {
   return (
-    <header className="border-b border-border bg-card">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-        <Link href="/" className="font-serif text-xl text-foreground">
-          {SITE_NAME}
-        </Link>
-        <nav className="flex gap-4 text-sm text-muted-foreground">
+    <header className="sticky top-0 z-20 border-b border-ink/[0.08] bg-peach/85 backdrop-blur-md">
+      <div className="max-w-[1160px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
+        <Logo />
+        <nav className="flex shrink-0 gap-[18px] md:gap-[26px] whitespace-nowrap text-sm text-ink">
           {NAV_LINKS.slice(0, 3).map((link) => (
-            <Link key={link.href} href={link.href} className="hover:text-foreground transition-colors">
+            <Link key={link.href} href={link.href} className="hover:text-ink/70 transition-colors">
               {link.label}
             </Link>
           ))}

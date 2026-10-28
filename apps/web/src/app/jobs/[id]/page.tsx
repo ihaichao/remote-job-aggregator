@@ -64,14 +64,14 @@ export default async function JobPage({ params }: JobPageProps) {
           返回职位列表
         </Link>
 
-        <article className="bg-card border border-border rounded-xl p-6 md:p-8">
+        <article className="bg-card border border-border rounded-[18px] p-6 md:p-8">
           {!job.isActive && (
             <p className="mb-4 rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
               该职位可能已经招满或下线，仅供参考。
             </p>
           )}
 
-          <h1 className="text-2xl md:text-3xl text-foreground leading-snug">{job.title}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-ink leading-snug">{job.title}</h1>
 
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
             <Clock className="h-3.5 w-3.5" />
@@ -118,7 +118,7 @@ export default async function JobPage({ params }: JobPageProps) {
               href={job.applyUrl || job.originalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground hover:opacity-90 transition-opacity"
+              className="btn-primary shrink-0 whitespace-nowrap px-5 py-2.5"
             >
               查看原帖并申请
               <ExternalLink className="h-4 w-4" />

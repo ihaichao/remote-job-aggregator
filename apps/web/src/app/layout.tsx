@@ -1,27 +1,22 @@
 import type { Metadata } from 'next'
-import { Source_Sans_3, Calistoga, JetBrains_Mono, Noto_Sans_SC } from 'next/font/google'
+import { Space_Grotesk, JetBrains_Mono, Noto_Sans_SC } from 'next/font/google'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { BASE_URL } from '@/lib/site'
 import './globals.css'
 
-const sourceSans = Source_Sans_3({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-source-sans',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-sans',
   display: 'swap',
 })
 
+// CJK font is served as unicode-range slices, so only the glyphs a page uses get downloaded
 const notoSansSC = Noto_Sans_SC({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-noto-sc',
   display: 'swap',
-})
-
-const calistoga = Calistoga({
-  weight: '400',
-  subsets: ['latin'],
-  variable: '--font-calistoga',
-  display: 'swap',
+  preload: false,
 })
 
 const jetbrainsMono = JetBrains_Mono({
@@ -49,24 +44,11 @@ export const metadata: Metadata = {
     siteName: 'RemoteCN',
     title: 'RemoteCN - 面向中国开发者的远程工作平台',
     description: '实时聚合全网高质量远程开发岗位，让你轻松找到理想的远程工作机会。',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'RemoteCN - 远程工作平台',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'RemoteCN - 面向中国开发者的远程工作平台',
     description: '实时聚合全网高质量远程开发岗位',
-    images: ['/og-image.png'],
-  },
-  icons: {
-    icon: '/favicon.png',
-    apple: '/favicon.png',
   },
   robots: {
     index: true,
@@ -80,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN" className={`${sourceSans.variable} ${notoSansSC.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
+    <html lang="zh-CN" className={`${spaceGrotesk.variable} ${notoSansSC.variable} ${jetbrainsMono.variable}`}>
       <head>
         {/* Google AdSense */}
         <script
