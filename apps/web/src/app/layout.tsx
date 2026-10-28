@@ -1,22 +1,16 @@
 import type { Metadata } from 'next'
-import { Space_Grotesk, JetBrains_Mono, Noto_Sans_SC } from 'next/font/google'
+import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { BASE_URL } from '@/lib/site'
+import './noto-sans-sc.css'
 import './globals.css'
 
-// Variable fonts: one file per subset covers every weight we use (300–700)
+// Variable font: one file per subset covers every weight we use (300–700).
+// The CJK font (Noto Sans SC) is self-hosted in noto-sans-sc.css.
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
-})
-
-// CJK font is served as unicode-range slices, so only the glyphs a page uses get downloaded.
-// Static weights would mean ~500 slices fetched at build time; the variable font needs ~100.
-const notoSansSC = Noto_Sans_SC({
-  variable: '--font-noto-sc',
-  display: 'swap',
-  preload: false,
 })
 
 const jetbrainsMono = JetBrains_Mono({
@@ -62,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN" className={`${spaceGrotesk.variable} ${notoSansSC.variable} ${jetbrainsMono.variable}`}>
+    <html lang="zh-CN" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <head>
         {/* Google AdSense */}
         <script

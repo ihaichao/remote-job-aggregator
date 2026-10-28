@@ -64,7 +64,7 @@ export function FilterSidebar({ query, total, stats, onChange, onClear }: Filter
         <span>
           <b className="font-semibold text-ink">{total}</b> 个职位
         </span>
-        <button type="button" onClick={onClear} className="text-sm font-medium text-muted-foreground hover:text-ink">
+        <button type="button" onClick={onClear} className="rounded-lg bg-[#f3ebe3] px-2.5 py-[5px] text-sm font-medium text-muted-foreground hover:text-ink">
           ✕ 清除筛选
         </button>
       </div>

@@ -21,7 +21,7 @@ const CATEGORY_OPTIONS = [
   ...Object.entries(JOB_CATEGORY_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
-const SEGMENT = 'flex min-w-0 items-center gap-3 border-line px-[18px] py-2.5 max-[859px]:border-b min-[860px]:border-r';
+const SEGMENT = 'flex min-w-0 items-center gap-3 border-line px-4 py-2 max-[859px]:border-b min-[860px]:border-r min-[860px]:px-[18px] min-[860px]:py-2.5';
 
 function SegmentSelect({
   icon: Icon,
@@ -44,7 +44,7 @@ function SegmentSelect({
         <Select value={value || ANY} onValueChange={(v) => onChange(v === ANY ? '' : v)}>
           <SelectTrigger
             aria-label={label}
-            className={`h-5 border-0 p-0 text-sm leading-5 shadow-none focus:ring-0 ${value ? 'text-ink' : 'text-muted-foreground'}`}
+            className={`mt-0.5 h-5 border-0 p-0 text-sm leading-5 shadow-none focus:ring-0 ${value ? 'text-ink' : 'text-muted-foreground'}`}
           >
             <SelectValue />
           </SelectTrigger>
@@ -89,7 +89,7 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
             value={draft.keyword}
             onChange={(e) => set({ keyword: e.target.value })}
             placeholder="React、Go、AI Agent…"
-            className="w-full bg-transparent text-sm leading-5 text-ink outline-none placeholder:text-muted-foreground"
+            className="mt-0.5 block h-5 w-full bg-transparent text-sm leading-5 text-ink outline-none placeholder:text-muted-foreground"
           />
         </div>
       </label>
