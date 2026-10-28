@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const LIST_DESCRIPTION_PREVIEW = 500;
@@ -24,9 +25,17 @@ export class JobsService {
     if (filters.category) where.category = { has: filters.category };
     if (filters.regionLimit) where.regionLimit = filters.regionLimit;
     if (filters.workType) where.workType = filters.workType;
-    if (filters.keyword && filters.keyword.trim()) {
-      const keyword = filters.keyword.trim();
-      where.title = { contains: keyword, mode: 'insensitive' };
+    const keyword = filters.keyword?.trim();
+    if (keyword) {
+      // Match the title, or a tag equal to the keyword ignoring case
+      const tagMatches = await this.prisma.$queryRaw<{ id: number }[]>(Prisma.sql`
+        SELECT id FROM jobs
+        WHERE is_active AND EXISTS (SELECT 1 FROM unnest(tags) t WHERE lower(t) = lower(${keyword}))
+      `);
+      where.OR = [
+        { title: { contains: keyword, mode: 'insensitive' } },
+        { id: { in: tagMatches.map((row) => row.id) } },
+      ];
     }
 
     const [data, total] = await Promise.all([
