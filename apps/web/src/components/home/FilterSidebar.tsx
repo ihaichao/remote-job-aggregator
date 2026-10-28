@@ -2,6 +2,7 @@ import { JobStats } from '@/lib/api';
 import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta';
 import { JOB_CATEGORY_LABELS, REGION_OPTIONS, WORK_TYPE_OPTIONS } from '@/lib/constants';
 import { ListQuery } from '@/lib/listQuery';
+import { statCount } from '@/lib/statCount';
 
 interface FilterSidebarProps {
   query: ListQuery;
@@ -46,17 +47,17 @@ function Group({ title, children, desktopOnly }: { title: string; children: Reac
 
 export function FilterSidebar({ query, total, stats, onChange, onClear }: FilterSidebarProps) {
   const categories: Option[] = [
-    { value: '', label: '全部', count: stats.total || undefined },
+    { value: '', label: '全部', count: statCount(stats, 'categories', '') },
     ...Object.keys(JOB_CATEGORY_LABELS)
       .sort((a, b) => (stats.categories[b] ?? 0) - (stats.categories[a] ?? 0))
       .map((key) => ({
         value: key,
         label: `${(CATEGORY_META[key] ?? DEFAULT_CATEGORY_META).emoji} ${JOB_CATEGORY_LABELS[key]}`,
-        count: stats.categories[key] ?? 0,
+        count: statCount(stats, 'categories', key),
       })),
   ];
-  const regions = REGION_OPTIONS.map((o) => ({ ...o, count: o.value ? stats.regions[o.value] ?? 0 : stats.total || undefined }));
-  const workTypes = WORK_TYPE_OPTIONS.map((o) => ({ ...o, count: o.value ? stats.workTypes[o.value] ?? 0 : stats.total || undefined }));
+  const regions = REGION_OPTIONS.map((o) => ({ ...o, count: statCount(stats, 'regions', o.value) }));
+  const workTypes = WORK_TYPE_OPTIONS.map((o) => ({ ...o, count: statCount(stats, 'workTypes', o.value) }));
 
   return (
     <aside className="min-w-0 self-start min-[860px]:sticky min-[860px]:top-[88px]">

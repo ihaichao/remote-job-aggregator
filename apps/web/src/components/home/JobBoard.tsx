@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Briefcase, Loader2 } from 'lucide-react';
 import { Job, JobStats, getJobs } from '@/lib/api';
-import { EMPTY_QUERY, ListQuery, PAGE_SIZE, applyQueryPatch, mergeJobs, serializeListQuery } from '@/lib/listQuery';
+import { EMPTY_QUERY, ListQuery, PAGE_SIZE, applyQueryPatch, mergeJobs, parseListQuery, serializeListQuery } from '@/lib/listQuery';
 import { formatTimeAgo } from '@/lib/time';
 import { JobCard } from '@/components/JobCard';
 import { FilterSidebar } from './FilterSidebar';
@@ -17,11 +18,10 @@ interface JobBoardProps {
   stats: JobStats;
 }
 
-// Keeps the address bar in step with the list without a server round trip;
-// Next 14 picks up native history updates in useSearchParams.
-function syncUrl(q: ListQuery) {
-  const search = serializeListQuery(q);
-  window.history.replaceState(window.history.state, '', search ? `?${search}` : window.location.pathname);
+// Keeps the address bar in step with the list without a server round trip.
+// A null state lets Next 14 sync its router (and useSearchParams) to the new URL.
+function writeUrl(search: string) {
+  window.history.replaceState(null, '', search ? `?${search}` : window.location.pathname);
 }
 
 // Snapshot of the loaded list, taken when a card is opened. The router cache
@@ -56,25 +56,50 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
   const [total, setTotal] = useState(initialTotal);
   const [loading, setLoading] = useState<false | 'replace' | 'append'>(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   // Only the latest request may write state; older responses are dropped
   const requestSeq = useRef(0);
   const pendingScroll = useRef<number | null>(null);
+  const restoredJobs = useRef<Job[] | null>(null);
+  // The query string this list last wrote; anything else in the URL came from a link
+  const ownSearch = useRef(serializeListQuery(initialQuery));
+  const searchParams = useSearchParams();
   const listRef = useRef<HTMLDivElement>(null);
 
   useIsomorphicLayoutEffect(() => {
     const snap = takeSnapshot();
     if (!snap) return;
     pendingScroll.current = snap.scrollY;
+    restoredJobs.current = snap.jobs;
+    ownSearch.current = serializeListQuery(snap.query);
     setQueryState(snap.query);
     setJobs(snap.jobs);
     setTotal(snap.total);
   }, []);
 
+  // Scroll once the restored list is on the page, not the server-rendered one
   useIsomorphicLayoutEffect(() => {
-    if (pendingScroll.current === null) return;
+    if (pendingScroll.current === null || jobs !== restoredJobs.current) return;
     window.scrollTo(0, pendingScroll.current);
     pendingScroll.current = null;
+    restoredJobs.current = null;
   }, [jobs]);
+
+  // A link to the list (logo, nav) changed the URL under a mounted board: follow it
+  useEffect(() => {
+    const parsed = parseListQuery(Object.fromEntries(searchParams.entries()));
+    if (serializeListQuery(parsed) === ownSearch.current) return;
+    const linked = { ...parsed, page: 1 };
+    syncUrl(linked);
+    setQueryState(linked);
+    load(linked, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  function syncUrl(q: ListQuery) {
+    ownSearch.current = serializeListQuery(q);
+    writeUrl(ownSearch.current);
+  }
 
   function saveSnapshot() {
     try {
@@ -95,6 +120,7 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
     const seq = ++requestSeq.current;
     setLoading(append ? 'append' : 'replace');
     setError(null);
+    setLoadMoreError(null);
     try {
       const res = await getJobs({
         keyword: q.keyword || undefined,
@@ -114,7 +140,8 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
     } catch (err) {
       if (seq !== requestSeq.current) return;
       console.error(err);
-      setError('加载失败，请稍后重试');
+      // A failed "load more" keeps the jobs already shown
+      (append ? setLoadMoreError : setError)('加载失败，请稍后重试');
     } finally {
       if (seq === requestSeq.current) setLoading(false);
     }
@@ -146,7 +173,7 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
 
   return (
     <>
-      <Hero query={query} stats={stats} total={total} onSearch={setQuery} onPick={pickFromWall} />
+      <Hero query={query} stats={stats} onSearch={setQuery} onPick={pickFromWall} />
       <div
         ref={listRef}
         className="scroll-mt-16 mx-auto grid max-w-[1160px] gap-9 px-6 pb-20 pt-10 min-[860px]:grid-cols-[250px_1fr] [&>*]:min-w-0"
@@ -190,7 +217,7 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
                   <JobCard key={job.id} job={job} />
                 ))}
               </div>
-              <LoadMore loaded={jobs.length} total={total} loading={Boolean(loading)} onLoadMore={loadMore} />
+              <LoadMore loaded={jobs.length} total={total} loading={Boolean(loading)} error={loadMoreError} onLoadMore={loadMore} />
             </>
           )}
         </section>
