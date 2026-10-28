@@ -4,16 +4,16 @@ import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { BASE_URL } from '@/lib/site'
 import './globals.css'
 
+// Variable fonts: one file per subset covers every weight we use (300–700)
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
 })
 
-// CJK font is served as unicode-range slices, so only the glyphs a page uses get downloaded
+// CJK font is served as unicode-range slices, so only the glyphs a page uses get downloaded.
+// Static weights would mean ~500 slices fetched at build time; the variable font needs ~100.
 const notoSansSC = Noto_Sans_SC({
-  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-noto-sc',
   display: 'swap',
   preload: false,

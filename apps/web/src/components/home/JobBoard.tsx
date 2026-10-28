@@ -7,6 +7,7 @@ import { EMPTY_QUERY, ListQuery, PAGE_SIZE, applyQueryPatch, mergeJobs, serializ
 import { formatTimeAgo } from '@/lib/time';
 import { JobCard } from '@/components/JobCard';
 import { FilterSidebar } from './FilterSidebar';
+import { Hero } from './Hero';
 import { LoadMore } from './LoadMore';
 
 interface JobBoardProps {
@@ -58,6 +59,7 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
   // Only the latest request may write state; older responses are dropped
   const requestSeq = useRef(0);
   const pendingScroll = useRef<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useIsomorphicLayoutEffect(() => {
     const snap = takeSnapshot();
@@ -76,7 +78,13 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
 
   function saveSnapshot() {
     try {
-      const snap: Snapshot = { search: window.location.search, query, jobs, total, scrollY: window.scrollY };
+      const snap: Snapshot = {
+        search: window.location.search,
+        query,
+        jobs,
+        total,
+        scrollY: window.scrollY,
+      };
       sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap));
     } catch {
       // Storage full or blocked: Back falls back to the server-rendered list
@@ -130,48 +138,63 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
     setQuery(EMPTY_QUERY);
   }
 
+  // A chip in the hero wall filters the list and brings it into view
+  function pickFromWall(patch: Partial<ListQuery>) {
+    setQuery(patch);
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   return (
-    <div className="mx-auto grid max-w-[1160px] gap-9 px-6 pb-20 pt-10 min-[860px]:grid-cols-[250px_1fr] [&>*]:min-w-0">
-      <FilterSidebar query={query} total={total} stats={stats} onChange={setQuery} onClear={clearFilters} />
+    <>
+      <Hero query={query} stats={stats} total={total} onSearch={setQuery} onPick={pickFromWall} />
+      <div
+        ref={listRef}
+        className="scroll-mt-16 mx-auto grid max-w-[1160px] gap-9 px-6 pb-20 pt-10 min-[860px]:grid-cols-[250px_1fr] [&>*]:min-w-0"
+      >
+        <FilterSidebar query={query} total={total} stats={stats} onChange={setQuery} onClear={clearFilters} />
 
-      <section>
-        <div className="mb-4 flex items-center justify-between gap-3 text-sm text-muted-foreground">
-          <span>
-            排序：<b className="font-medium text-ink">最新发布</b>
-          </span>
-          {stats.lastSyncedAt && <span suppressHydrationWarning>最近同步 {formatTimeAgo(stats.lastSyncedAt)}</span>}
-        </div>
+        <section>
+          <div className="mb-4 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            <span>
+              排序：<b className="font-medium text-ink">最新发布</b>
+            </span>
+            {stats.lastSyncedAt && <span suppressHydrationWarning>最近同步 {formatTimeAgo(stats.lastSyncedAt)}</span>}
+          </div>
 
-        {error ? (
-          <div className="py-16 text-center">
-            <p className="text-destructive">{error}</p>
-          </div>
-        ) : jobs.length === 0 && loading ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-orange" />
-            <p className="text-sm text-muted-foreground">正在加载职位...</p>
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-16">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-              <Briefcase className="h-8 w-8 text-muted-foreground" />
+          {error ? (
+            <div className="py-16 text-center">
+              <p className="text-destructive">{error}</p>
             </div>
-            <div className="text-center">
-              <p className="font-medium text-ink">暂无相关职位</p>
-              <p className="mt-1 text-sm text-muted-foreground">请尝试调整筛选条件</p>
+          ) : jobs.length === 0 && loading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-orange" />
+              <p className="text-sm text-muted-foreground">正在加载职位...</p>
             </div>
-          </div>
-        ) : (
-          <>
-            <div onClickCapture={saveSnapshot} className={`grid grid-cols-[minmax(0,1fr)] gap-3.5 transition-opacity duration-200 ${loading === 'replace' ? 'opacity-50' : ''}`}>
-              {jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
-              ))}
+          ) : jobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-16">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                <Briefcase className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-ink">暂无相关职位</p>
+                <p className="mt-1 text-sm text-muted-foreground">请尝试调整筛选条件</p>
+              </div>
             </div>
-            <LoadMore loaded={jobs.length} total={total} loading={Boolean(loading)} onLoadMore={loadMore} />
-          </>
-        )}
-      </section>
-    </div>
+          ) : (
+            <>
+              <div
+                onClickCapture={saveSnapshot}
+                className={`grid grid-cols-[minmax(0,1fr)] gap-3.5 transition-opacity duration-200 ${loading === 'replace' ? 'opacity-50' : ''}`}
+              >
+                {jobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </div>
+              <LoadMore loaded={jobs.length} total={total} loading={Boolean(loading)} onLoadMore={loadMore} />
+            </>
+          )}
+        </section>
+      </div>
+    </>
   );
 }
