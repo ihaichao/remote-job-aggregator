@@ -27,3 +27,6 @@ docker-compose.override.yml
 
 # pnpm
 .pnpm-debug.log
+
+# Brainstorm mockups
+.superpowers/
