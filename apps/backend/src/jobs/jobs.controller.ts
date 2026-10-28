@@ -24,6 +24,12 @@ export class JobsController {
     });
   }
 
+  // Must stay above ':id' so "stats" is not parsed as a job id
+  @Get('stats')
+  async stats() {
+    return this.jobsService.getStats();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const job = Number.isInteger(+id) ? await this.jobsService.findOne(+id) : null;
