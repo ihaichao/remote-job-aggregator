@@ -28,7 +28,7 @@ model Job {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  @@index([category])
+  @@index([category], type: Gin)
   @@index([regionLimit])
   @@index([workType])
   @@index([datePosted(sort: Desc)])
