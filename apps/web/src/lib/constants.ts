@@ -67,3 +67,21 @@ export const SOURCE_LABELS: Record<string, string> = {
   'remote.com': 'Remote.com',
   boss: 'BOSS直聘',
 };
+
+// Tech keywords drifting in the homepage hero
+export const HERO_KEYWORDS = [
+  'React', 'Go', 'Python', 'Rust', 'TypeScript', 'LLM', 'Next.js', 'Kubernetes', 'Solidity', 'Flutter',
+  'Node.js', 'AI Agent', 'Vue', 'Java', 'iOS', 'RAG', 'Unity', 'PostgreSQL', 'AWS', 'Swift',
+];
+
+export const REGION_OPTIONS = [
+  { value: '', label: '不限' },
+  { value: 'worldwide', label: '🌍 全球' },
+  { value: 'CN', label: '🇨🇳 中国' },
+];
+
+export const WORK_TYPE_OPTIONS = [
+  { value: '', label: '不限' },
+  { value: 'fulltime', label: '全职' },
+  { value: 'parttime', label: '兼职' },
+];
