@@ -44,6 +44,17 @@ export interface JobsResponse {
   pagination: Pagination;
 }
 
+// Site-wide counts from GET /api/jobs/stats; not affected by filters
+export interface JobStats {
+  total: number;
+  categories: Record<string, number>;
+  regions: Record<string, number>;
+  workTypes: Record<string, number>;
+  lastSyncedAt: string | null;
+}
+
+export const EMPTY_STATS: JobStats = { total: 0, categories: {}, regions: {}, workTypes: {}, lastSyncedAt: null };
+
 // Client-side fetch (used in 'use client' components)
 export async function getJobs(filters?: JobFilters): Promise<JobsResponse> {
   const params = new URLSearchParams();
@@ -122,5 +133,23 @@ export async function getJob(id: number): Promise<Job> {
     throw new Error('Failed to fetch job');
   }
 
+  return res.json();
+}
+
+// Server-side stats fetch; returns EMPTY_STATS on any failure so the page still renders
+export async function getServerJobStats(): Promise<JobStats> {
+  try {
+    const res = await fetch(`${SERVER_API_BASE}/jobs/stats`, { next: { revalidate: 300 } });
+    if (!res.ok) return EMPTY_STATS;
+    return res.json();
+  } catch (error) {
+    console.error('SSR fetch stats error:', error);
+    return EMPTY_STATS;
+  }
+}
+
+export async function getJobStats(): Promise<JobStats> {
+  const res = await fetch(`${API_BASE}/jobs/stats`);
+  if (!res.ok) throw new Error('Failed to fetch job stats');
   return res.json();
 }
