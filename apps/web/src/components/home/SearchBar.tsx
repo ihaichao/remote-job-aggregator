@@ -16,12 +16,14 @@ interface SearchBarProps {
 // Radix Select reserves '' for "no value", so "不限" travels as this sentinel
 const ANY = '__any__';
 
+const KEYWORD_DEBOUNCE_MS = 500;
+
 const CATEGORY_OPTIONS = [
   { value: '', label: '全部方向' },
   ...Object.entries(JOB_CATEGORY_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
-const SEGMENT = 'flex min-w-0 items-center gap-3 border-line px-4 py-2 max-[859px]:border-b min-[860px]:border-r min-[860px]:px-[18px] min-[860px]:py-2.5';
+const SEGMENT = 'flex min-w-0 items-center gap-3 border-line px-4 py-2 max-[859px]:border-b min-[860px]:border-r last:border-0 min-[860px]:px-[18px] min-[860px]:py-2.5';
 
 function SegmentSelect({
   icon: Icon,
@@ -79,6 +81,14 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
     setDraft({ keyword: query.keyword, category: query.category, regionLimit: query.regionLimit, workType: query.workType });
   }, [query.keyword, query.category, query.regionLimit, query.workType]);
 
+  // Typing searches on its own once the user pauses; Enter skips the wait
+  useEffect(() => {
+    const keyword = draft.keyword.trim();
+    if (keyword === query.keyword) return;
+    const timer = setTimeout(() => onSearch({ keyword }), KEYWORD_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [draft.keyword, query.keyword]);
+
   const set = (patch: Partial<Fields>) => setDraft((d) => ({ ...d, ...patch }));
   // A dropdown choice applies at once, like the sidebar, along with any keyword already typed
   const apply = (patch: Partial<Fields>) => onSearch({ ...draft, ...patch, keyword: draft.keyword.trim() });
@@ -90,7 +100,7 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
         e.preventDefault();
         onSearch({ ...draft, keyword: draft.keyword.trim() });
       }}
-      className="pointer-events-auto mx-auto mt-[26px] grid max-w-[900px] items-center rounded-[20px] border-2 border-ink bg-white text-left min-[860px]:grid-cols-[1.5fr_1fr_1fr_1fr_auto] min-[860px]:rounded-[22px]"
+      className="pointer-events-auto mx-auto mt-[26px] grid max-w-[900px] items-center rounded-[20px] border-2 border-ink bg-white text-left min-[860px]:grid-cols-[1.5fr_1fr_1fr_1fr] min-[860px]:rounded-[22px]"
     >
       <label className={SEGMENT}>
         <Search className="h-5 w-5 flex-none text-ink" />
@@ -108,12 +118,6 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
       <SegmentSelect icon={Briefcase} label="职位方向" value={draft.category} options={CATEGORY_OPTIONS} onChange={(category) => apply({ category })} {...dropdown('category')} />
       <SegmentSelect icon={Globe} label="地域" value={draft.regionLimit} options={REGION_OPTIONS} onChange={(regionLimit) => apply({ regionLimit })} {...dropdown('regionLimit')} />
       <SegmentSelect icon={Clock} label="工作性质" value={draft.workType} options={WORK_TYPE_OPTIONS} onChange={(workType) => apply({ workType })} {...dropdown('workType')} />
-      <button
-        type="submit"
-        className="m-1.5 flex h-[46px] items-center justify-center gap-2 rounded-[14px] border-2 border-ink bg-orange px-[22px] text-sm font-semibold text-ink transition-transform hover:translate-y-px"
-      >
-        搜索 <span aria-hidden>→</span>
-      </button>
     </form>
   );
 }

@@ -9,7 +9,7 @@ export function SiteHeader() {
       <div className="max-w-[1160px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
         <Logo />
         <nav className="flex shrink-0 gap-[18px] md:gap-[26px] whitespace-nowrap text-sm text-ink">
-          {NAV_LINKS.slice(0, 3).map((link) => (
+          {NAV_LINKS.slice(0, 2).map((link) => (
             <Link key={link.href} href={link.href} className="hover:text-ink/70 transition-colors">
               {link.label}
             </Link>
