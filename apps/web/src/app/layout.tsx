@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
+import { CloudflareAnalytics } from '@/components/CloudflareAnalytics'
 import { BASE_URL } from '@/lib/site'
 import './noto-sans-sc.css'
 import './globals.css'
@@ -67,6 +68,7 @@ export default function RootLayout({
       </head>
       <body>
         <GoogleAnalytics />
+        <CloudflareAnalytics />
         {children}
       </body>
     </html>

@@ -40,6 +40,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_GA_ID: G-KY60BL1119
+        NEXT_PUBLIC_CF_BEACON_TOKEN: ${CF_BEACON_TOKEN:-}
     container_name: remote-jobs-frontend
     restart: unless-stopped
     environment:
