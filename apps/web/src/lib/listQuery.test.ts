@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseListQuery, serializeListQuery, mergeJobs, applyQueryPatch, EMPTY_QUERY } from './listQuery';
+import { parseListQuery, serializeListQuery, mergeJobs, applyQueryPatch, hasActiveFilters, EMPTY_QUERY } from './listQuery';
 
 describe('parseListQuery', () => {
   it('reads valid params', () => {
@@ -46,5 +46,18 @@ describe('applyQueryPatch', () => {
 
   it('keeps the page when a filter is set to its current value', () => {
     expect(applyQueryPatch(base, { category: 'ai' })).toEqual(base);
+  });
+});
+
+describe('hasActiveFilters', () => {
+  it('is false for the default list, whatever page it is on', () => {
+    expect(hasActiveFilters(EMPTY_QUERY)).toBe(false);
+    expect(hasActiveFilters({ ...EMPTY_QUERY, page: 3 })).toBe(false);
+  });
+  it('is true when any filter or keyword is set', () => {
+    expect(hasActiveFilters({ ...EMPTY_QUERY, keyword: 'Go' })).toBe(true);
+    expect(hasActiveFilters({ ...EMPTY_QUERY, category: 'ai' })).toBe(true);
+    expect(hasActiveFilters({ ...EMPTY_QUERY, regionLimit: 'CN' })).toBe(true);
+    expect(hasActiveFilters({ ...EMPTY_QUERY, workType: 'parttime' })).toBe(true);
   });
 });

@@ -29,19 +29,23 @@ function SegmentSelect({
   value,
   options,
   onChange,
+  open,
+  onOpenChange,
 }: {
   icon: typeof Search;
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   return (
     <div className={SEGMENT}>
       <Icon className="h-5 w-5 flex-none text-ink" />
       <div className="min-w-0 flex-1">
         <div className="text-xs font-semibold leading-4 text-ink">{label}</div>
-        <Select value={value || ANY} onValueChange={(v) => onChange(v === ANY ? '' : v)}>
+        <Select value={value || ANY} onValueChange={(v) => onChange(v === ANY ? '' : v)} open={open} onOpenChange={onOpenChange}>
           <SelectTrigger
             aria-label={label}
             className={`mt-0.5 h-5 border-0 p-0 text-sm leading-5 shadow-none focus:ring-0 ${value ? 'text-ink' : 'text-muted-foreground'}`}
@@ -63,6 +67,12 @@ function SegmentSelect({
 
 export function SearchBar({ query, onSearch }: SearchBarProps) {
   const [draft, setDraft] = useState<Fields>(query);
+  // Radix lets each select open on its own; only one dropdown should be open at a time
+  const [openField, setOpenField] = useState<keyof Fields | null>(null);
+  const dropdown = (field: keyof Fields) => ({
+    open: openField === field,
+    onOpenChange: (open: boolean) => setOpenField((current) => (open ? field : current === field ? null : current)),
+  });
 
   // Filters picked elsewhere (sidebar, hero wall) show up here too
   useEffect(() => {
@@ -93,9 +103,9 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
           />
         </div>
       </label>
-      <SegmentSelect icon={Briefcase} label="职位方向" value={draft.category} options={CATEGORY_OPTIONS} onChange={(category) => set({ category })} />
-      <SegmentSelect icon={Globe} label="地域" value={draft.regionLimit} options={REGION_OPTIONS} onChange={(regionLimit) => set({ regionLimit })} />
-      <SegmentSelect icon={Clock} label="工作性质" value={draft.workType} options={WORK_TYPE_OPTIONS} onChange={(workType) => set({ workType })} />
+      <SegmentSelect icon={Briefcase} label="职位方向" value={draft.category} options={CATEGORY_OPTIONS} onChange={(category) => set({ category })} {...dropdown('category')} />
+      <SegmentSelect icon={Globe} label="地域" value={draft.regionLimit} options={REGION_OPTIONS} onChange={(regionLimit) => set({ regionLimit })} {...dropdown('regionLimit')} />
+      <SegmentSelect icon={Clock} label="工作性质" value={draft.workType} options={WORK_TYPE_OPTIONS} onChange={(workType) => set({ workType })} {...dropdown('workType')} />
       <button
         type="submit"
         className="m-1.5 flex h-[46px] items-center justify-center gap-2 rounded-[14px] border-2 border-ink bg-orange px-[22px] text-sm font-semibold text-ink transition-transform hover:translate-y-px"

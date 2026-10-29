@@ -1,7 +1,7 @@
 import { JobStats } from '@/lib/api';
 import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta';
 import { JOB_CATEGORY_LABELS, REGION_OPTIONS, WORK_TYPE_OPTIONS } from '@/lib/constants';
-import { ListQuery } from '@/lib/listQuery';
+import { ListQuery, hasActiveFilters } from '@/lib/listQuery';
 import { statCount } from '@/lib/statCount';
 
 interface FilterSidebarProps {
@@ -61,13 +61,16 @@ export function FilterSidebar({ query, total, stats, onChange, onClear }: Filter
 
   return (
     <aside className="min-w-0 self-start min-[860px]:sticky min-[860px]:top-[88px]">
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      {/* Fixed height so the list below doesn't shift when the clear button comes and goes */}
+      <div className="flex min-h-[30px] items-center justify-between text-sm text-muted-foreground">
         <span>
           <b className="font-semibold text-ink">{total}</b> 个职位
         </span>
-        <button type="button" onClick={onClear} className="rounded-lg bg-[#f3ebe3] px-2.5 py-[5px] text-sm font-medium text-muted-foreground hover:text-ink">
-          ✕ 清除筛选
-        </button>
+        {hasActiveFilters(query) && (
+          <button type="button" onClick={onClear} className="rounded-lg bg-[#f3ebe3] px-2.5 py-[5px] text-sm font-medium text-muted-foreground hover:text-ink">
+            ✕ 清除筛选
+          </button>
+        )}
       </div>
 
       <Group title="职位方向">
