@@ -60,14 +60,6 @@
     transform: translateY(1px);
     box-shadow: 0 2px 0 theme('colors.ink');
   }
-
-  /* Orange marker stroke behind the lower half of a word (hero headline) */
-  .marker {
-    padding: 0 0.06em;
-    background: linear-gradient(transparent 58%, theme('colors.orange') 58%, theme('colors.orange') 90%, transparent 90%);
-    -webkit-box-decoration-break: clone;
-    box-decoration-break: clone;
-  }
 }
 
 @layer utilities {
