@@ -80,6 +80,8 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
   }, [query.keyword, query.category, query.regionLimit, query.workType]);
 
   const set = (patch: Partial<Fields>) => setDraft((d) => ({ ...d, ...patch }));
+  // A dropdown choice applies at once, like the sidebar, along with any keyword already typed
+  const apply = (patch: Partial<Fields>) => onSearch({ ...draft, ...patch, keyword: draft.keyword.trim() });
 
   return (
     <form
@@ -103,9 +105,9 @@ export function SearchBar({ query, onSearch }: SearchBarProps) {
           />
         </div>
       </label>
-      <SegmentSelect icon={Briefcase} label="职位方向" value={draft.category} options={CATEGORY_OPTIONS} onChange={(category) => set({ category })} {...dropdown('category')} />
-      <SegmentSelect icon={Globe} label="地域" value={draft.regionLimit} options={REGION_OPTIONS} onChange={(regionLimit) => set({ regionLimit })} {...dropdown('regionLimit')} />
-      <SegmentSelect icon={Clock} label="工作性质" value={draft.workType} options={WORK_TYPE_OPTIONS} onChange={(workType) => set({ workType })} {...dropdown('workType')} />
+      <SegmentSelect icon={Briefcase} label="职位方向" value={draft.category} options={CATEGORY_OPTIONS} onChange={(category) => apply({ category })} {...dropdown('category')} />
+      <SegmentSelect icon={Globe} label="地域" value={draft.regionLimit} options={REGION_OPTIONS} onChange={(regionLimit) => apply({ regionLimit })} {...dropdown('regionLimit')} />
+      <SegmentSelect icon={Clock} label="工作性质" value={draft.workType} options={WORK_TYPE_OPTIONS} onChange={(workType) => apply({ workType })} {...dropdown('workType')} />
       <button
         type="submit"
         className="m-1.5 flex h-[46px] items-center justify-center gap-2 rounded-[14px] border-2 border-ink bg-orange px-[22px] text-sm font-semibold text-ink transition-transform hover:translate-y-px"
