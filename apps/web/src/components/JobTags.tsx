@@ -9,6 +9,7 @@ interface JobTagsProps {
 
 // Tinted category chips followed by outlined tech tags; shared by the card and the detail page
 export function JobTags({ categories, tags, className = '' }: JobTagsProps) {
+  if (categories.length === 0 && tags.length === 0) return null;
   return (
     <div className={`flex flex-wrap gap-1.5 ${className}`}>
       {categories.map((c) => (
