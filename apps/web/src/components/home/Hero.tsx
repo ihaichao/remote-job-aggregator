@@ -19,10 +19,10 @@ export function Hero({ query, stats, onSearch, onPick = onSearch }: HeroProps) {
         <h1 className="pointer-events-auto mx-auto w-fit text-[clamp(30px,3.75vw,48px)] font-bold leading-none tracking-[-0.01em] text-ink">
           {/* Phrases are kept whole so narrow screens wrap between them */}
           <span className="inline-block">
-            面向<span className="text-orange">中国开发者</span>的
+            面向<span className="marker">中国开发者</span>的
           </span>
           <span className="inline-block">
-            <span className="text-orange">远程工作</span>平台
+            <span className="marker">远程工作</span>平台
           </span>
         </h1>
         <p className="pointer-events-auto mx-auto mt-3.5 w-fit max-w-[620px] text-base font-light leading-6 text-ink">
