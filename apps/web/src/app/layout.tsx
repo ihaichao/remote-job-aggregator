@@ -58,14 +58,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
-      <head>
-        {/* Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1549018081644908"
-          crossOrigin="anonymous"
-        />
-      </head>
       <body>
         <GoogleAnalytics />
         <CloudflareAnalytics />

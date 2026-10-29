@@ -1,3 +1,4 @@
+import { AdSense } from '@/components/AdSense';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { JobBoard } from '@/components/home/JobBoard';
@@ -27,6 +28,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="min-h-screen">
+      {jobs.length > 0 && <AdSense />}
       <SiteHeader />
       <JobBoard key={serializeListQuery(q)} initialQuery={q} initialJobs={jobs} initialTotal={total} initialStats={stats} />
       <SiteFooter />

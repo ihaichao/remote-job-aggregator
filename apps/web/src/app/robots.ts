@@ -8,7 +8,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/'],
+        // /_next/ stays crawlable: Google needs the CSS and JS to render pages
+        disallow: ['/api/'],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
