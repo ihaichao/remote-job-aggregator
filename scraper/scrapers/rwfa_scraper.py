@@ -158,8 +158,7 @@ class RWFAScraper:
         if not self._is_dev_job(title, text):
             return None
         
-        # Extract company - usually follows title
-        company = self._extract_company(text, title)
+        company = self._extract_company(card, title_elem)
         
         # Extract date posted from relative time strings
         date_posted = self._extract_date(text)
@@ -235,23 +234,17 @@ class RWFAScraper:
         # Default to current time if no match
         return now.isoformat()
     
-    def _extract_company(self, text: str, title: str) -> str:
-        """Try to extract company name from text"""
-        # Remove title from text to find what follows
-        remaining = text.replace(title, '', 1).strip()
-        
-        # Company is usually the first word/phrase after title
-        words = remaining.split()
-        if words:
-            # Take first 1-3 words as company (before time indicators)
-            company_words = []
-            for word in words[:5]:
-                if any(t in word.lower() for t in ['ago', 'hour', 'day', 'week', 'worldwide', '$']):
-                    break
-                company_words.append(word)
-            if company_words:
-                return ' '.join(company_words)
-        
+    def _extract_company(self, card, title_elem) -> str:
+        """Company name from the line under the title, else the logo's alt text"""
+        # Card text starts with the posting time on mobile, so it can't be split by position
+        name_elem = title_elem.find_next_sibling('p') if title_elem else None
+        if name_elem and name_elem.get_text(strip=True):
+            return name_elem.get_text(strip=True)
+
+        logo = card.find('img', alt=re.compile(r'\S+ logo$'))
+        if logo:
+            return logo['alt'][:-len(' logo')].strip()
+
         return 'Unknown'
     
     def _is_dev_job(self, title: str, text: str) -> bool:

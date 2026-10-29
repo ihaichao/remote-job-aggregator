@@ -33,6 +33,8 @@ cd scraper && python main.py --test     # Test mode (no DB write)
 cd scraper && python main.py --json     # JSON output only
 cd scraper && python reclassify_jobs.py --all  # Reclassify all jobs
 cd scraper && python cleanup_jobs.py --dry-run  # Preview weekly cleanup (inactive + older than 90 days)
+cd scraper && python fix_rwfa_companies.py --dry-run  # Preview one-off fix of RWFA company names
+cd scraper && python -m pytest tests          # Scraper parser tests
 
 # Docker (production)
 docker compose up -d --build

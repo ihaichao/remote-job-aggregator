@@ -64,8 +64,8 @@ async def fetch_eleduck_description(client: httpx.AsyncClient, post_id: str) -> 
         return None
 
 
-def extract_rwfa_description(html: str) -> Optional[str]:
-    """Read the description from the JobPosting JSON-LD on an RWFA job page."""
+def _rwfa_job_postings(html: str):
+    """Yield the JobPosting JSON-LD objects on an RWFA job page."""
     soup = BeautifulSoup(html, 'html.parser')
     for script in soup.find_all('script', type='application/ld+json'):
         try:
@@ -75,10 +75,34 @@ def extract_rwfa_description(html: str) -> Optional[str]:
         items = data if isinstance(data, list) else data.get('@graph', [data])
         for item in items:
             if isinstance(item, dict) and item.get('@type') == 'JobPosting':
-                md = html_to_markdown(item.get('description') or '')
-                if md:
-                    return md
+                yield item
+
+
+def extract_rwfa_description(html: str) -> Optional[str]:
+    """Read the description from the JobPosting JSON-LD on an RWFA job page."""
+    for item in _rwfa_job_postings(html):
+        md = html_to_markdown(item.get('description') or '')
+        if md:
+            return md
     return None
+
+
+def extract_rwfa_company(html: str) -> Optional[str]:
+    """Read the hiring organization's name from an RWFA job page.
+
+    Live postings carry it in the JobPosting JSON-LD; expired ones drop the
+    JSON-LD but still link the company page right under the title.
+    """
+    for item in _rwfa_job_postings(html):
+        org = item.get('hiringOrganization')
+        name = org.get('name', '').strip() if isinstance(org, dict) else ''
+        if name:
+            return name
+
+    title = BeautifulSoup(html, 'html.parser').find('h1')
+    link = title.find_next('a', href=re.compile(r'^/companies/')) if title else None
+    name = link.get_text(strip=True) if link else ''
+    return name or None
 
 
 def extract_remotecom_description(html: str) -> Optional[str]:
