@@ -3,8 +3,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Briefcase, Loader2 } from 'lucide-react';
-import { Job, JobStats, getJobs } from '@/lib/api';
+import { Job, JobStats, getJobStats, getJobs } from '@/lib/api';
 import { EMPTY_QUERY, ListQuery, PAGE_SIZE, applyQueryPatch, mergeJobs, parseListQuery, serializeListQuery } from '@/lib/listQuery';
+import { ssrGaps } from '@/lib/ssrGaps';
 import { formatTimeAgo } from '@/lib/time';
 import { JobCard } from '@/components/JobCard';
 import { FilterSidebar } from './FilterSidebar';
@@ -15,7 +16,7 @@ interface JobBoardProps {
   initialQuery: ListQuery;
   initialJobs: Job[];
   initialTotal: number;
-  stats: JobStats;
+  initialStats: JobStats;
 }
 
 // Keeps the address bar in step with the list without a server round trip.
@@ -50,7 +51,8 @@ function takeSnapshot(): Snapshot | null {
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: JobBoardProps) {
+export function JobBoard({ initialQuery, initialJobs, initialTotal, initialStats }: JobBoardProps) {
+  const [stats, setStats] = useState(initialStats);
   const [query, setQueryState] = useState(initialQuery);
   const [jobs, setJobs] = useState(initialJobs);
   const [total, setTotal] = useState(initialTotal);
@@ -65,10 +67,12 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
   const ownSearch = useRef(serializeListQuery(initialQuery));
   const searchParams = useSearchParams();
   const listRef = useRef<HTMLDivElement>(null);
+  const fromSnapshot = useRef(false);
 
   useIsomorphicLayoutEffect(() => {
     const snap = takeSnapshot();
     if (!snap) return;
+    fromSnapshot.current = true;
     pendingScroll.current = snap.scrollY;
     restoredJobs.current = snap.jobs;
     ownSearch.current = serializeListQuery(snap.query);
@@ -84,6 +88,14 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, stats }: Job
     pendingScroll.current = null;
     restoredJobs.current = null;
   }, [jobs]);
+
+  // Whatever the server could not fetch, fetch again from the browser
+  useEffect(() => {
+    const gaps = ssrGaps(initialJobs.length, initialStats);
+    if (gaps.jobs && !fromSnapshot.current) load(initialQuery, false);
+    if (gaps.stats) getJobStats().then(setStats, console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A link to the list (logo, nav) changed the URL under a mounted board: follow it
   useEffect(() => {

@@ -28,7 +28,7 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <main className="min-h-screen">
       <SiteHeader />
-      <JobBoard key={serializeListQuery(q)} initialQuery={q} initialJobs={jobs} initialTotal={total} stats={stats} />
+      <JobBoard key={serializeListQuery(q)} initialQuery={q} initialJobs={jobs} initialTotal={total} initialStats={stats} />
       <SiteFooter />
     </main>
   );
