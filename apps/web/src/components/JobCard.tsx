@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Job } from '@/lib/api';
-import { JOB_CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants';
+import { JOB_CATEGORY_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants';
 import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta';
 import { displayCompany } from '@/lib/jobDisplay';
 import { formatTimeAgo, isFresh } from '@/lib/time';
@@ -71,9 +71,6 @@ export function JobCard({ job }: JobCardProps) {
         >
           {fresh && '● '}
           {formatTimeAgo(posted)}
-        </span>
-        <span className="min-w-0 truncate rounded-[7px] bg-[#f7f1eb] px-2 py-1 text-xs text-muted-foreground">
-          via {SOURCE_LABELS[job.sourceSite] ?? job.sourceSite}
         </span>
       </div>
     </Link>
