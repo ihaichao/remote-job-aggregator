@@ -16,9 +16,14 @@ export function Hero({ query, stats, onSearch, onPick = onSearch }: HeroProps) {
     <section data-hero className="relative overflow-hidden bg-[linear-gradient(180deg,#ffd9b8_0%,#ffe8d4_70%,#fffaf5_100%)]">
       <HeroWall categoryCounts={stats.categories} onPick={onPick} />
       <div className="pointer-events-none relative z-[2] mx-auto max-w-[1160px] px-6 py-7 text-center min-[860px]:pb-10 min-[860px]:pt-11">
-        <h1 className="pointer-events-auto mx-auto w-fit text-[clamp(30px,3.75vw,48px)] font-bold leading-none tracking-[-0.01em] text-ink">为中国开发者找远程工作</h1>
+        <h1 className="pointer-events-auto mx-auto w-fit text-[clamp(30px,3.75vw,48px)] font-bold leading-none tracking-[-0.01em] text-ink">
+          {/* Phrases are kept whole so narrow screens wrap between them */}
+          <span className="inline-block">面向中国开发者的</span>
+          <span className="inline-block">远程工作平台</span>
+        </h1>
         <p className="pointer-events-auto mx-auto mt-3.5 w-fit max-w-[620px] text-base font-light leading-6 text-ink">
-          聚合全网远程开发岗位，AI 自动分类。前端、后端、AI、Web3，一处搜完。
+          <span className="inline-block">实时聚合全网高质量远程开发岗位，</span>
+          <span className="inline-block">让你轻松找到理想的远程工作机会</span>
         </p>
         <SearchBar query={query} onSearch={onSearch} />
         <div className="pointer-events-auto mx-auto mt-[18px] flex w-fit flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-light text-muted-foreground">

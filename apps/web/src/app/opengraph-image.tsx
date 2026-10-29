@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'remotecn - 为中国开发者找远程工作';
+export const alt = 'RemoteCN - 面向中国开发者的远程工作平台';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
