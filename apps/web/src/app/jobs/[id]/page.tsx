@@ -1,14 +1,16 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Clock, ExternalLink } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
-import { Badge } from '@/components/ui/badge'
 import { JobDescription } from '@/components/JobDescription'
+import { JobTags } from '@/components/JobTags'
+import { BackToList } from '@/components/job/BackToList'
 import { getServerJob, hasSubstantiveDescription } from '@/lib/api'
+import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta'
 import { displayCompany } from '@/lib/jobDisplay'
-import { CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
+import { JOB_CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
+import { formatTimeAgo } from '@/lib/time'
 import { markdownToPlainText } from '@/lib/utils'
 
 interface JobPageProps {
@@ -35,102 +37,103 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
   }
 }
 
+function ApplyButton({ href, className = '' }: { href: string; className?: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={`btn-primary whitespace-nowrap px-5 py-3 text-[15px] font-semibold ${className}`}>
+      前往申请
+      <ArrowUpRight className="h-4 w-4" />
+    </a>
+  )
+}
+
 export default async function JobPage({ params }: JobPageProps) {
   const job = await loadJob(params.id)
   if (!job) notFound()
 
-  const categories = job.category.filter((c) => c !== 'other')
-  const postedAt = new Date(job.datePosted || job.createdAt).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  const posted = job.datePosted || job.createdAt
+  const postedDate = new Date(posted).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+  const categories = job.category.filter((c) => JOB_CATEGORY_LABELS[c])
+  const icon = CATEGORY_META[categories[0]] ?? DEFAULT_CATEGORY_META
   const source = SOURCE_LABELS[job.sourceSite] || job.sourceSite
-  const showDescription = hasSubstantiveDescription(job)
   const company = displayCompany(job.company)
+  const region = getRegionLabel(job.regionLimit)
+  const workType = WORK_TYPE_LABELS[job.workType] || job.workType
+  const applyHref = job.applyUrl || job.originalUrl
 
   const facts = [
-    { label: '工作类型', value: WORK_TYPE_LABELS[job.workType] || job.workType },
-    { label: '地区要求', value: getRegionLabel(job.regionLimit) },
-    { label: '发布时间', value: postedAt },
-    { label: '来源', value: source },
     ...(company ? [{ label: '公司', value: company }] : []),
+    { label: '地域', value: region },
+    { label: '工作性质', value: workType },
+    { label: '发布时间', value: postedDate },
+    { label: '来源', value: source },
   ]
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex min-h-screen flex-col max-[859px]:pb-[76px]">
       <SiteHeader />
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="h-4 w-4" />
-          返回职位列表
-        </Link>
 
-        <article className="bg-card border border-border rounded-[18px] p-6 md:p-8">
+      <header className="bg-[linear-gradient(180deg,#ffd9b8_0%,#ffe8d4_70%,#fffaf5_100%)]">
+        <div className="mx-auto max-w-[1160px] px-6 pb-9 pt-6 min-[860px]:pb-12">
+          <BackToList />
+
+          <div className="mt-6 flex items-start gap-4 min-[860px]:gap-5">
+            <div
+              className="grid h-14 w-14 flex-none place-items-center rounded-[16px] border border-white/80 text-[28px] min-[860px]:h-[72px] min-[860px]:w-[72px] min-[860px]:text-[34px]"
+              style={{ background: icon.tint }}
+              aria-hidden
+            >
+              {icon.emoji}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-[26px] font-bold leading-tight tracking-[-0.01em] text-ink min-[860px]:text-[36px]">{job.title}</h1>
+              {company && <p className="mt-1.5 text-lg font-medium text-ink">{company}</p>}
+              <p className="mt-2.5 text-xs font-medium uppercase tracking-[0.02em] text-muted-foreground">
+                {region} · {workType} · <span suppressHydrationWarning>{formatTimeAgo(posted)}</span> 发布
+              </p>
+            </div>
+          </div>
+
+          <JobTags categories={categories} tags={job.tags.slice(0, 8)} className="mt-5 min-[860px]:ml-[92px]" />
+
           {!job.isActive && (
-            <p className="mb-4 rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
+            <p className="mt-5 inline-flex rounded-[10px] border border-[#f2c58f] bg-[#fff4e5] px-3.5 py-2 text-sm text-[#8a4b08] min-[860px]:ml-[92px]">
               该职位可能已经招满或下线，仅供参考。
             </p>
           )}
+        </div>
+      </header>
 
-          <h1 className="text-2xl md:text-3xl font-bold text-ink leading-snug">{job.title}</h1>
-
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
-            <Clock className="h-3.5 w-3.5" />
-            <span>{postedAt} 发布于 {source}</span>
-          </div>
-
-          {(categories.length > 0 || job.tags.length > 0) && (
-            <div className="flex flex-wrap gap-1.5 mt-4">
-              {categories.map((cat) => (
-                <Badge key={cat} variant="category" className="text-xs px-2 py-0.5">
-                  {CATEGORY_LABELS[cat] || cat}
-                </Badge>
-              ))}
-              {job.tags.slice(0, 8).map((tag, index) => (
-                <Badge key={index} variant="tag" className="text-xs px-2 py-0.5">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+      <main className="mx-auto grid w-full max-w-[1160px] flex-1 items-start gap-6 px-6 pb-12 pt-2 min-[860px]:grid-cols-[minmax(0,1fr)_300px] min-[860px]:gap-9 min-[860px]:pb-20">
+        <article className="min-w-0 rounded-[18px] border border-line bg-white p-6 min-[860px]:p-9">
+          <h2 className="mb-4 text-xl font-bold text-ink">职位描述</h2>
+          {hasSubstantiveDescription(job) ? (
+            <JobDescription markdown={job.description!} />
+          ) : (
+            <p className="text-[15px] text-muted-foreground">该职位的详细要求请查看原始招聘页面。</p>
           )}
+        </article>
 
-          <dl className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-border">
+        <aside className="rounded-[18px] border border-line bg-white p-6 min-[860px]:sticky min-[860px]:top-[88px]">
+          <ApplyButton href={applyHref} className="w-full max-[859px]:hidden" />
+          <dl className="space-y-3 text-sm min-[860px]:mt-6">
             {facts.map((fact) => (
-              <div key={fact.label}>
-                <dt className="text-xs text-muted-foreground">{fact.label}</dt>
-                <dd className="mt-1 text-sm text-foreground">{fact.value}</dd>
+              <div key={fact.label} className="flex justify-between gap-4">
+                <dt className="flex-none text-muted-foreground">{fact.label}</dt>
+                <dd className="min-w-0 truncate text-right font-medium text-ink">{fact.value}</dd>
               </div>
             ))}
           </dl>
-
-          <div className="mt-6 pt-6 border-t border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-3">职位描述</h2>
-            {showDescription ? (
-              <JobDescription markdown={job.description!} />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                该职位的详细要求请查看原始招聘页面。
-              </p>
-            )}
-          </div>
-
-          <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3">
-            <a
-              href={job.applyUrl || job.originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary shrink-0 whitespace-nowrap px-5 py-2.5"
-            >
-              查看原帖并申请
-              <ExternalLink className="h-4 w-4" />
-            </a>
-            <p className="text-xs text-muted-foreground">
-              信息整理自 {source}，请以原帖为准。投递前请核实公司信息，警惕任何要求预先付费的招聘。
-            </p>
-          </div>
-        </article>
+          <p className="mt-6 border-t border-line pt-4 text-xs leading-5 text-muted-foreground">
+            信息整理自 {source}，请以原帖为准。投递前请核实公司信息，警惕任何要求预先付费的招聘。
+          </p>
+        </aside>
       </main>
+
+      {/* Phones: keep the apply button in reach while reading a long description */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-cream/95 px-6 py-3 backdrop-blur min-[860px]:hidden">
+        <ApplyButton href={applyHref} className="w-full" />
+      </div>
+
       <SiteFooter />
     </div>
   )

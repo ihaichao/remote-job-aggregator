@@ -5,6 +5,7 @@ import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta';
 import { displayCompany } from '@/lib/jobDisplay';
 import { formatTimeAgo, isFresh } from '@/lib/time';
 import { markdownToPlainText } from '@/lib/utils';
+import { JobTags } from './JobTags';
 
 interface JobCardProps {
   job: Job;
@@ -43,25 +44,7 @@ export function JobCard({ job }: JobCardProps) {
         <div className="mt-2.5 text-xs font-medium uppercase leading-4 tracking-[0.02em] text-muted-foreground">
           {location}
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {categories.map((c) => (
-            <span
-              key={c}
-              className="rounded-[7px] px-[9px] py-1 text-xs font-medium text-ink"
-              style={{ background: (CATEGORY_META[c] ?? DEFAULT_CATEGORY_META).tint }}
-            >
-              {JOB_CATEGORY_LABELS[c]}
-            </span>
-          ))}
-          {job.tags.slice(0, 5).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-[7px] border border-line px-[9px] py-1 font-mono text-[11px] text-muted-foreground"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        <JobTags categories={categories} tags={job.tags.slice(0, 5)} className="mt-3" />
       </div>
 
       <div className="col-start-2 flex items-center justify-between gap-2.5 min-[860px]:col-start-3 min-[860px]:flex-col min-[860px]:items-end">

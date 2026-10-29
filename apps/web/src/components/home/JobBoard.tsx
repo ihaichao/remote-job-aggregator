@@ -6,6 +6,7 @@ import { Briefcase, Loader2 } from 'lucide-react';
 import { Job, JobStats, getJobStats, getJobs } from '@/lib/api';
 import { EMPTY_QUERY, ListQuery, PAGE_SIZE, applyQueryPatch, mergeJobs, parseListQuery, serializeListQuery } from '@/lib/listQuery';
 import { ssrGaps } from '@/lib/ssrGaps';
+import { LIST_SNAPSHOT_KEY } from '@/lib/backNavigation';
 import { formatTimeAgo } from '@/lib/time';
 import { JobCard } from '@/components/JobCard';
 import { FilterSidebar } from './FilterSidebar';
@@ -28,8 +29,6 @@ function writeUrl(search: string) {
 // Snapshot of the loaded list, taken when a card is opened. The router cache
 // on Back only holds the first server render, so the list and scroll position
 // are restored from here instead.
-const SNAPSHOT_KEY = 'jobBoard:snapshot';
-
 interface Snapshot {
   search: string;
   query: ListQuery;
@@ -40,8 +39,8 @@ interface Snapshot {
 
 function takeSnapshot(): Snapshot | null {
   try {
-    const raw = sessionStorage.getItem(SNAPSHOT_KEY);
-    sessionStorage.removeItem(SNAPSHOT_KEY);
+    const raw = sessionStorage.getItem(LIST_SNAPSHOT_KEY);
+    sessionStorage.removeItem(LIST_SNAPSHOT_KEY);
     const snap: Snapshot | null = raw ? JSON.parse(raw) : null;
     return snap && snap.search === window.location.search ? snap : null;
   } catch {
@@ -122,7 +121,7 @@ export function JobBoard({ initialQuery, initialJobs, initialTotal, initialStats
         total,
         scrollY: window.scrollY,
       };
-      sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap));
+      sessionStorage.setItem(LIST_SNAPSHOT_KEY, JSON.stringify(snap));
     } catch {
       // Storage full or blocked: Back falls back to the server-rendered list
     }
