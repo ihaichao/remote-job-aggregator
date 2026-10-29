@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { ArrowUpRight } from 'lucide-react'
+import { AdSense } from '@/components/AdSense'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { JobDescription } from '@/components/JobDescription'
@@ -9,7 +10,7 @@ import { BackToList } from '@/components/job/BackToList'
 import { getServerJob, hasSubstantiveDescription } from '@/lib/api'
 import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta'
 import { displayCompany } from '@/lib/jobDisplay'
-import { JOB_CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
+import { JOB_CATEGORY_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
 import { formatTimeAgo } from '@/lib/time'
 import { markdownToPlainText } from '@/lib/utils'
 
@@ -54,7 +55,6 @@ export default async function JobPage({ params }: JobPageProps) {
   const postedDate = new Date(posted).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
   const categories = job.category.filter((c) => JOB_CATEGORY_LABELS[c])
   const icon = CATEGORY_META[categories[0]] ?? DEFAULT_CATEGORY_META
-  const source = SOURCE_LABELS[job.sourceSite] || job.sourceSite
   const company = displayCompany(job.company)
   const region = getRegionLabel(job.regionLimit)
   const workType = WORK_TYPE_LABELS[job.workType] || job.workType
@@ -65,11 +65,12 @@ export default async function JobPage({ params }: JobPageProps) {
     { label: '地域', value: region },
     { label: '工作性质', value: workType },
     { label: '发布时间', value: postedDate },
-    { label: '来源', value: source },
   ]
 
   return (
     <div className="flex min-h-screen flex-col max-[859px]:pb-[76px]">
+      {/* Same bar as indexing: no ads on closed or near-empty postings */}
+      {job.isActive && hasSubstantiveDescription(job) && <AdSense />}
       <SiteHeader />
 
       <header className="bg-[linear-gradient(180deg,#ffd9b8_0%,#ffe8d4_70%,#fffaf5_100%)]">
@@ -124,7 +125,7 @@ export default async function JobPage({ params }: JobPageProps) {
             ))}
           </dl>
           <p className="mt-6 border-t border-line pt-4 text-xs leading-5 text-muted-foreground">
-            信息整理自 {source}，请以原帖为准。投递前请核实公司信息，警惕任何要求预先付费的招聘。
+            投递前请核实公司信息，警惕任何要求预先付费的招聘。
           </p>
         </aside>
       </main>
