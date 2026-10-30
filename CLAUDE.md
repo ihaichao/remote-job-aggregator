@@ -52,7 +52,7 @@ nginx/            Reverse proxy config for remotecn.com
 ```
 
 ### Data Flow
-1. **Scrapers** (hourly cron) fetch jobs from V2EX, Eleduck, RWFA, Remote.com
+1. **Scrapers** (hourly cron) fetch jobs from V2EX, Eleduck, RWFA, Remote.com, Himalayas (API, China-eligible jobs), ruanyf/weekly「谁在招人」and rebase-network/who-is-hiring (GitHub API, remote posts only)
 2. **AI Classifier** categorizes each job via OpenRouter API (DeepSeek V3), falls back to local Ollama
 3. Jobs inserted into **PostgreSQL** with dedup (content hash + URL uniqueness)
 4. **Backend API** serves `GET /api/jobs` with filters (category, region, workType, keyword)
@@ -87,6 +87,7 @@ POSTGRES_PASSWORD=          # Required
 OPENROUTER_API_KEY=         # AI classification (required for VPS)
 OPENROUTER_MODEL=           # Default: google/gemini-2.5-flash-lite
 V2EX_TOKEN=                 # V2EX API access
+GITHUB_TOKEN=               # Optional, GitHub API limit for ruanyf / Rebase scrapers
 NEXT_PUBLIC_API_URL=        # Frontend API base URL
 ```
 
@@ -95,5 +96,6 @@ NEXT_PUBLIC_API_URL=        # Frontend API base URL
 - UI language is Chinese (labels, placeholders, time formatting)
 - Job category is multi-label (array), one job can have 1-3 categories
 - Scrapers are async Python with httpx; each scraper has its own parser
+- Himalayas API terms: apply buttons must use its `applicationLink` (stored as `apply_url`), Himalayas must be credited, and its jobs must not be passed on to Google Jobs / LinkedIn / other aggregators (no `JobPosting` structured data for `source_site = 'himalayas'`)
 - Docker internal DNS: services reference each other by name (e.g., `postgres`, `backend`)
 - Prisma migrations auto-run on backend startup in Docker (`prisma migrate deploy`)

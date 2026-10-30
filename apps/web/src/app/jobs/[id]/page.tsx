@@ -125,6 +125,16 @@ export default async function JobPage({ params }: JobPageProps) {
             ))}
           </dl>
           <p className="mt-6 border-t border-line pt-4 text-xs leading-5 text-muted-foreground">
+            {/* Himalayas API terms require crediting it on every job it supplies */}
+            {job.sourceSite === 'himalayas' && (
+              <>
+                职位来源：
+                <a href={job.originalUrl} target="_blank" rel="noopener" className="font-medium text-ink underline underline-offset-2">
+                  Himalayas
+                </a>
+                。
+              </>
+            )}
             投递前请核实公司信息，警惕任何要求预先付费的招聘。
           </p>
         </aside>
