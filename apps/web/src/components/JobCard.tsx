@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Job } from '@/lib/api';
 import { JOB_CATEGORY_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants';
-import { displayCompany } from '@/lib/jobDisplay';
 import { formatTimeAgo, isFresh } from '@/lib/time';
 import { markdownToPlainText } from '@/lib/utils';
 import { JobTags } from './JobTags';
@@ -14,7 +13,6 @@ export function JobCard({ job }: JobCardProps) {
   const posted = job.datePosted || job.createdAt;
   const fresh = isFresh(posted);
   const categories = job.category.filter((c) => JOB_CATEGORY_LABELS[c]);
-  const company = displayCompany(job.company);
   const description = job.description ? markdownToPlainText(job.description) : '';
   const location = [getRegionLabel(job.regionLimit), WORK_TYPE_LABELS[job.workType] ?? job.workType]
     .filter(Boolean)
@@ -27,7 +25,6 @@ export function JobCard({ job }: JobCardProps) {
     >
       <div className="min-w-0">
         <h3 className="text-lg font-bold leading-[24.75px] text-ink">{job.title}</h3>
-        {company && <div className="mt-0.5 text-base font-medium leading-6 text-ink">{company}</div>}
         {description && (
           <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-muted-foreground">{description}</p>
         )}

@@ -9,7 +9,6 @@ import { JobTags } from '@/components/JobTags'
 import { BackToList } from '@/components/job/BackToList'
 import { getServerJob, hasSubstantiveDescription } from '@/lib/api'
 import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta'
-import { displayCompany } from '@/lib/jobDisplay'
 import { JOB_CATEGORY_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
 import { formatTimeAgo } from '@/lib/time'
 import { markdownToPlainText } from '@/lib/utils'
@@ -55,13 +54,11 @@ export default async function JobPage({ params }: JobPageProps) {
   const postedDate = new Date(posted).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
   const categories = job.category.filter((c) => JOB_CATEGORY_LABELS[c])
   const icon = CATEGORY_META[categories[0]] ?? DEFAULT_CATEGORY_META
-  const company = displayCompany(job.company)
   const region = getRegionLabel(job.regionLimit)
   const workType = WORK_TYPE_LABELS[job.workType] || job.workType
   const applyHref = job.applyUrl || job.originalUrl
 
   const facts = [
-    ...(company ? [{ label: '公司', value: company }] : []),
     { label: '地域', value: region },
     { label: '工作性质', value: workType },
     { label: '发布时间', value: postedDate },
@@ -87,7 +84,6 @@ export default async function JobPage({ params }: JobPageProps) {
             </div>
             <div className="min-w-0">
               <h1 className="text-[26px] font-bold leading-tight tracking-[-0.01em] text-ink min-[860px]:text-[36px]">{job.title}</h1>
-              {company && <p className="mt-1.5 text-lg font-medium text-ink">{company}</p>}
               <p className="mt-2.5 text-xs font-medium uppercase tracking-[0.02em] text-muted-foreground">
                 {region} · {workType} · <span suppressHydrationWarning>{formatTimeAgo(posted)}</span> 发布
               </p>
