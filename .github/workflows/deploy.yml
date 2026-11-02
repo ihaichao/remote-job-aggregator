@@ -33,11 +33,12 @@ jobs:
           SSH_PORT: ${{ secrets.VPS_PORT || '22' }}
           DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
         run: |
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s -- "$DEPLOY_PATH" "$GITHUB_SHA" <<'EOF'
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s -- "$DEPLOY_PATH" "$GITHUB_SHA" "https://github.com/$GITHUB_REPOSITORY.git" <<'EOF'
           set -euo pipefail
           cd "$1"
           # .env lives only on the server and is gitignored, so pulling leaves it alone
-          git fetch origin master
+          # Public repo: fetch over HTTPS so the VPS needs no GitHub key
+          git fetch "$3" master
           git checkout master
           git merge --ff-only "$2"
           docker compose up -d --build --remove-orphans
