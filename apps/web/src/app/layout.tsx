@@ -1,21 +1,25 @@
 import type { Metadata } from 'next'
-import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import { CloudflareAnalytics } from '@/components/CloudflareAnalytics'
 import { BASE_URL } from '@/lib/site'
 import './noto-sans-sc.css'
 import './globals.css'
 
-// Variable font: one file per subset covers every weight we use (300–700).
+// Self-hosted variable fonts so Docker builds never depend on Google Fonts reachability.
 // The CJK font (Noto Sans SC) is self-hosted in noto-sans-sc.css.
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
+const spaceGrotesk = localFont({
+  src: './fonts/space-grotesk-latin.woff2',
+  weight: '300 700',
+  style: 'normal',
   variable: '--font-sans',
   display: 'swap',
 })
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
+const jetbrainsMono = localFont({
+  src: './fonts/jetbrains-mono-latin.woff2',
+  weight: '100 800',
+  style: 'normal',
   variable: '--font-jetbrains',
   display: 'swap',
 })
