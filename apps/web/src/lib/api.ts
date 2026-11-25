@@ -195,7 +195,7 @@ export interface JobInsights extends JobStats {
 
 export async function getServerJobInsights(): Promise<JobInsights | null> {
   try {
-    const res = await fetch(`${SERVER_API_BASE}/jobs/insights`, { next: { revalidate: 300 } });
+    const res = await fetch(`${SERVER_API_BASE}/jobs/insights`, { cache: 'no-store' });
     return res.ok ? await res.json() : null;
   } catch {
     return null;

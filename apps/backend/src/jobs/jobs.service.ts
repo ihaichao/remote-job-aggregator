@@ -11,6 +11,7 @@ const STATS_WORK_TYPES = ['fulltime', 'parttime'];
 @Injectable()
 export class JobsService {
   private statsCache: { value: JobStats; expiresAt: number } | null = null;
+  private insightsCache: { value: any; expiresAt: number } | null = null;
 
   constructor(private prisma: PrismaService) {}
 
@@ -33,10 +34,19 @@ export class JobsService {
     if (filters.workType) where.workType = filters.workType;
     const keyword = filters.keyword?.trim();
     if (keyword) {
-      // Match the title, or a tag equal to the keyword ignoring case
+      // Match the title, tags, or aiAnalysis.techStack ignoring case
       const tagMatches = await this.prisma.$queryRaw<{ id: number }[]>(Prisma.sql`
         SELECT id FROM jobs
-        WHERE is_active AND EXISTS (SELECT 1 FROM unnest(tags) t WHERE lower(t) = lower(${keyword}))
+        WHERE is_active AND (
+          EXISTS (SELECT 1 FROM unnest(tags) t WHERE lower(t) = lower(${keyword}))
+          OR (
+            jsonb_typeof(ai_analysis->'techStack') = 'array'
+            AND EXISTS (
+              SELECT 1 FROM jsonb_array_elements_text(ai_analysis->'techStack') t
+              WHERE lower(trim(t)) = lower(${keyword})
+            )
+          )
+        )
       `);
       where.OR = [
         { title: { contains: keyword, mode: 'insensitive' } },
@@ -87,14 +97,29 @@ export class JobsService {
   }
 
   async getInsights() {
+    if (this.insightsCache && this.insightsCache.expiresAt > Date.now()) return this.insightsCache.value;
+
     const [stats, sources, analyzedCount, tags, recentTrend] = await Promise.all([
       this.getStats(),
       this.prisma.job.groupBy({ by: ['sourceSite'], where: { isActive: true }, _count: true }),
       this.prisma.job.count({ where: { isActive: true, aiAnalysis: { not: Prisma.AnyNull } } }),
       this.prisma.$queryRaw<{ tag: string; count: number }[]>(Prisma.sql`
-        SELECT min(trim(tag)) AS tag, count(DISTINCT id)::int AS count
-        FROM jobs CROSS JOIN unnest(tags) AS tag WHERE is_active AND trim(tag) <> ''
-        GROUP BY lower(trim(tag)) ORDER BY count DESC, min(trim(tag)) LIMIT 20
+        WITH all_tags AS (
+          SELECT id, trim(tag) AS tag
+          FROM jobs CROSS JOIN unnest(tags) AS tag
+          WHERE is_active AND trim(tag) <> ''
+          UNION
+          SELECT id, trim(tag) AS tag
+          FROM jobs CROSS JOIN LATERAL jsonb_array_elements_text(
+            CASE WHEN jsonb_typeof(ai_analysis->'techStack') = 'array' THEN ai_analysis->'techStack' ELSE '[]'::jsonb END
+          ) AS tag
+          WHERE is_active AND trim(tag) <> ''
+        )
+        SELECT min(tag) AS tag, count(DISTINCT id)::int AS count
+        FROM all_tags
+        GROUP BY lower(tag)
+        ORDER BY count DESC, min(tag)
+        LIMIT 20
       `),
       this.prisma.$queryRaw<{ label: string; count: number }[]>(Prisma.sql`
         WITH weeks AS (SELECT generate_series(date_trunc('week', current_date) - interval '7 weeks',
@@ -105,8 +130,15 @@ export class JobsService {
         GROUP BY start ORDER BY start
       `),
     ]);
-    return { ...stats, sources: Object.fromEntries(sources.map(row => [row.sourceSite, row._count])),
-      analyzedCount, topTags: tags, recentTrend };
+    const value = {
+      ...stats,
+      sources: Object.fromEntries(sources.map((row) => [row.sourceSite, row._count])),
+      analyzedCount,
+      topTags: tags,
+      recentTrend,
+    };
+    this.insightsCache = { value, expiresAt: Date.now() + STATS_TTL_MS };
+    return value;
   }
 
   async getStats(): Promise<JobStats> {

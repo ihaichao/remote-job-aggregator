@@ -10,7 +10,7 @@ import { getServerJobInsights } from '@/lib/api';
 import { getInsightsEditorial } from '@/lib/insights';
 import { JOB_CATEGORY_LABELS, SOURCE_LABELS } from '@/lib/constants';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 export function generateMetadata() {
   const e = getInsightsEditorial();
   return { title: e?.title || '远程招聘数据洞察', description: e?.seoDescription, alternates: { canonical: '/insights' } };
