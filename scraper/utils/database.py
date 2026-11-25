@@ -1,5 +1,6 @@
 import hashlib
 import psycopg2
+from psycopg2.extras import Json, RealDictCursor
 import re
 from datetime import datetime, timedelta
 from typing import Dict, Optional
@@ -47,8 +48,8 @@ class DatabaseClient:
             INSERT INTO jobs (
                 title, company, category, tags, region_limit, work_type,
                 source_site, original_url, apply_url, content_hash, description,
-                date_posted, date_scraped, is_active, created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ai_analysis, ai_analyzed_at, date_posted, date_scraped, is_active, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """
 
@@ -74,7 +75,7 @@ class DatabaseClient:
 
             self.cursor.execute(query, (
                 job_data['title'][:255],
-                job_data.get('company', 'Unknown')[:255],
+                (job_data.get('company') or '')[:255] or None,
                 category,
                 tags,
                 job_data.get('region_limit', 'worldwide')[:50],
@@ -84,6 +85,8 @@ class DatabaseClient:
                 job_data.get('apply_url'),
                 content_hash,
                 job_data.get('description', ''),
+                Json(job_data["ai_analysis"]) if job_data.get("ai_analysis") else None,
+                now if job_data.get("ai_analysis") else None,
                 date_posted,
                 now,  # date_scraped
                 True,  # is_active
@@ -96,6 +99,24 @@ class DatabaseClient:
         except Exception as e:
             self.conn.rollback()
             raise e
+
+    def get_jobs_needing_analysis(self, limit: int, force: bool = False):
+        with self.conn, self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("""
+                SELECT id, title, description, company, region_limit, work_type, source_site
+                FROM jobs WHERE is_active AND (%s OR ai_analysis IS NULL)
+                  AND coalesce(trim(description), '') <> ''
+                ORDER BY ai_analyzed_at ASC NULLS FIRST, date_scraped DESC, id DESC LIMIT %s
+            """, (force, limit))
+            return cursor.fetchall()
+
+    def update_job_analysis(self, job_id: int, analysis: dict):
+        with self.conn:
+            self.cursor.execute("""
+                UPDATE jobs SET ai_analysis = %s, ai_analyzed_at = now(), updated_at = now()
+                WHERE id = %s AND is_active
+            """, (Json(analysis), job_id))
+            return self.cursor.rowcount
 
     def _normalize_text(self, text: str) -> str:
         """Normalize text for comparison by removing whitespace and common variations"""

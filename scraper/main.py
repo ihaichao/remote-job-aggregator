@@ -95,6 +95,7 @@ async def main():
 async def main_production():
     """Production mode: create DB first, pass to scrapers for dedup, then insert"""
     from utils import DatabaseClient
+    from utils.ai_classifier import AIClassifier
 
     database_url = os.getenv('DATABASE_URL')
     if not database_url:
@@ -110,15 +111,26 @@ async def main_production():
     jobs = await scrape_all(db=db)
     print(f"\nTotal: {len(jobs)} new jobs scraped", file=sys.stderr)
 
+    classifier = AIClassifier()
     inserted = 0
     for job in jobs:
         try:
+            if db.job_exists(job['title'], job['original_url']):
+                continue
+            try:
+                job['ai_analysis'] = await classifier.analyze_job(
+                    job['title'], job.get('description'), job.get('company'),
+                    job.get('region_limit', 'worldwide'), job.get('work_type', 'fulltime'),
+                    job.get('source_site', ''))
+            except Exception as exc:
+                print(f"Skipping analysis: {type(exc).__name__}", file=sys.stderr)
             result = db.insert_job(job)
             if result:
                 inserted += 1
         except Exception as e:
             print(f"Error inserting job: {e}", file=sys.stderr)
 
+    await classifier.close()
     db.close()
     print(f"\nInserted {inserted} new jobs (skipped {len(jobs) - inserted} duplicates)", file=sys.stderr)
 

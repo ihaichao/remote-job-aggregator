@@ -4,12 +4,14 @@ import { ArrowUpRight } from 'lucide-react'
 import { AdSense } from '@/components/AdSense'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
-import { JobDescription } from '@/components/JobDescription'
+import { GuideCards } from '@/components/EditorialPage'
+import { JobCard } from '@/components/JobCard'
+import { guidesForCategories } from '@/lib/guides'
 import { JobTags } from '@/components/JobTags'
 import { BackToList } from '@/components/job/BackToList'
-import { getServerJob, hasSubstantiveDescription } from '@/lib/api'
+import { getServerJob, getServerRelatedJobs, hasCuratedAnalysis, displayCompany } from '@/lib/api'
 import { CATEGORY_META, DEFAULT_CATEGORY_META } from '@/lib/categoryMeta'
-import { JOB_CATEGORY_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
+import { JOB_CATEGORY_LABELS, SOURCE_LABELS, WORK_TYPE_LABELS, getRegionLabel } from '@/lib/constants'
 import { formatTimeAgo } from '@/lib/time'
 import { markdownToPlainText } from '@/lib/utils'
 
@@ -27,13 +29,13 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
   const job = await loadJob(params.id)
   if (!job) return { title: '职位不存在' }
 
-  const description = markdownToPlainText(job.description || job.title).slice(0, 150)
+  const description = (hasCuratedAnalysis(job) ? job.aiAnalysis.summary : markdownToPlainText(job.description || job.title)).slice(0, 150)
   return {
     title: job.title,
     description,
     alternates: { canonical: `/jobs/${job.id}` },
     // Keep thin or expired listings out of search results
-    robots: job.isActive && hasSubstantiveDescription(job) ? undefined : { index: false, follow: true },
+    robots: job.isActive && hasCuratedAnalysis(job) ? undefined : { index: false, follow: true },
   }
 }
 
@@ -58,7 +60,16 @@ export default async function JobPage({ params }: JobPageProps) {
   const workType = WORK_TYPE_LABELS[job.workType] || job.workType
   const applyHref = job.applyUrl || job.originalUrl
 
+  const analysis = hasCuratedAnalysis(job) ? job.aiAnalysis : null
+  const company = displayCompany(job.company)
+  const source = SOURCE_LABELS[job.sourceSite] || job.sourceSite
+  const plain = markdownToPlainText(job.description || '')
+  const limit = analysis ? 240 : 320
+  const excerpt = plain.length > limit ? plain.slice(0, limit - 1) + '…' : plain
+  const related = analysis ? await getServerRelatedJobs(job.id) : []
+  const guides = analysis ? guidesForCategories(categories) : []
   const facts = [
+    ...(company ? [{ label: '公司', value: company }] : []),
     { label: '地域', value: region },
     { label: '工作性质', value: workType },
     { label: '发布时间', value: postedDate },
@@ -67,7 +78,7 @@ export default async function JobPage({ params }: JobPageProps) {
   return (
     <div className="flex min-h-screen flex-col max-[859px]:pb-[76px]">
       {/* Same bar as indexing: no ads on closed or near-empty postings */}
-      {job.isActive && hasSubstantiveDescription(job) && <AdSense />}
+      {job.isActive && analysis && <AdSense />}
       <SiteHeader />
 
       <header className="bg-[linear-gradient(180deg,#ffd9b8_0%,#ffe8d4_70%,#fffaf5_100%)]">
@@ -85,7 +96,7 @@ export default async function JobPage({ params }: JobPageProps) {
             <div className="min-w-0">
               <h1 className="text-[26px] font-bold leading-tight tracking-[-0.01em] text-ink min-[860px]:text-[36px]">{job.title}</h1>
               <p className="mt-2.5 text-xs font-medium uppercase tracking-[0.02em] text-muted-foreground">
-                {region} · {workType} · <span suppressHydrationWarning>{formatTimeAgo(posted)}</span> 发布
+                {company && company + ' · '}{region} · {workType} · <span suppressHydrationWarning>{formatTimeAgo(posted)}</span> 发布
               </p>
             </div>
           </div>
@@ -102,12 +113,24 @@ export default async function JobPage({ params }: JobPageProps) {
 
       <main className="mx-auto grid w-full max-w-[1160px] flex-1 items-start gap-6 px-6 pb-12 pt-2 min-[860px]:grid-cols-[minmax(0,1fr)_300px] min-[860px]:gap-9 min-[860px]:pb-20">
         <article className="min-w-0 rounded-[18px] border border-line bg-white p-6 min-[860px]:p-9">
-          <h2 className="mb-4 text-xl font-bold text-ink">职位描述</h2>
-          {hasSubstantiveDescription(job) ? (
-            <JobDescription markdown={job.description!} />
-          ) : (
-            <p className="text-[15px] text-muted-foreground">该职位的详细要求请查看原始招聘页面。</p>
-          )}
+          {analysis && <div className="space-y-7 leading-7">
+            <section><h2 className="section-title">岗位核心解读</h2><p>{analysis.summary}</p></section>
+            <section><h2 className="section-title">中国开发者适配度分析</h2><p>{analysis.fitForChina}</p>
+              <div className="mt-3 flex flex-wrap gap-2">{[
+                ['英语', analysis.englishLevel], ['时区', analysis.timezoneHint], ['薪资', analysis.salaryHint],
+              ].map(([label,value]) => value && <span className="chip" key={label}>{label} · {value}</span>)}</div></section>
+            <section><h2 className="section-title">关键职责与要求提炼</h2><ul className="list-disc space-y-2 pl-5">
+              {analysis.highlights.map(item => <li key={item}>{item}</li>)}</ul></section>
+            <section><h2 className="section-title">核心技术栈</h2><div className="flex flex-wrap gap-2">
+              {analysis.techStack.map(item => <span className="chip" key={item}>{item}</span>)}
+              {!analysis.techStack.length && '原帖未明确指定技术栈。'}</div></section>
+          </div>}
+          <section className={analysis ? 'mt-8 rounded-xl border border-line bg-cream p-4' : ''}>
+            <h2 className="mb-2 text-lg font-bold">原帖预览</h2>
+            {excerpt && <p className="mb-3 text-sm leading-6 text-muted-foreground">{excerpt}</p>}
+            <a className={analysis ? 'text-link' : 'btn-primary'} href={job.originalUrl} target="_blank" rel="noopener noreferrer">
+              前往 {source} 查看完整招聘说明</a>
+          </section>
         </article>
 
         <aside className="rounded-[18px] border border-line bg-white p-6 min-[860px]:sticky min-[860px]:top-[88px]">
@@ -136,6 +159,11 @@ export default async function JobPage({ params }: JobPageProps) {
         </aside>
       </main>
 
+      {analysis && <div className="mx-auto w-full max-w-[1160px] space-y-8 px-6 pb-6">
+        {related.length > 0 && <section><h2 className="section-title">同方向其他在招远程岗位</h2>
+          <div className="grid gap-3 md:grid-cols-2">{related.map(item => <JobCard key={item.id} job={item} />)}</div></section>}
+        <GuideCards title="相关远程求职指南" guides={guides} />
+      </div>}
       {/* Phones: keep the apply button in reach while reading a long description */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-cream/95 px-6 py-3 backdrop-blur min-[860px]:hidden">
         <ApplyButton href={applyHref} className="w-full" />

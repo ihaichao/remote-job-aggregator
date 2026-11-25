@@ -1,5 +1,17 @@
 // Job types
+export interface JobAiAnalysis {
+  summary: string;
+  fitForChina: string;
+  highlights: string[];
+  techStack: string[];
+  englishLevel?: string;
+  timezoneHint?: string;
+  salaryHint?: string;
+}
+
 export interface Job {
+  aiAnalysis?: JobAiAnalysis | null;
+  aiAnalyzedAt?: string | null;
   id: number;
   title: string;
   category: JobCategory[];

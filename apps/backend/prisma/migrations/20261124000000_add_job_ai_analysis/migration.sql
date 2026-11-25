@@ -1,0 +1,3 @@
+ALTER TABLE "jobs"
+  ADD COLUMN IF NOT EXISTS "ai_analysis" JSONB,
+  ADD COLUMN IF NOT EXISTS "ai_analyzed_at" TIMESTAMP(3);

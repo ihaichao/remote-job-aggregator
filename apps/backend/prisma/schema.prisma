@@ -22,6 +22,8 @@ model Job {
   applyUrl    String?   @map("apply_url") @db.Text
   contentHash String    @unique @map("content_hash") @db.VarChar(64)
   description String?   @db.Text
+  aiAnalysis   Json?     @map("ai_analysis")
+  aiAnalyzedAt DateTime? @map("ai_analyzed_at")
   datePosted  DateTime? @map("date_posted")
   dateScraped DateTime  @default(now()) @map("date_scraped")
   isActive    Boolean   @default(true) @map("is_active")

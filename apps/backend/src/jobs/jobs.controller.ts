@@ -30,6 +30,18 @@ export class JobsController {
     return this.jobsService.getStats();
   }
 
+  @Get('insights')
+  insights() {
+    return this.jobsService.getInsights();
+  }
+
+  @Get(':id/related')
+  async related(@Param('id') id: string) {
+    const jobs = Number.isInteger(+id) ? await this.jobsService.findRelated(+id) : null;
+    if (!jobs) throw new NotFoundException('Job not found');
+    return jobs;
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const job = Number.isInteger(+id) ? await this.jobsService.findOne(+id) : null;

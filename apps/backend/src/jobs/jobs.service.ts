@@ -47,7 +47,7 @@ export class JobsService {
     const [data, total] = await Promise.all([
       this.prisma.job.findMany({
         where,
-        orderBy: { datePosted: 'desc' },
+        orderBy: [{ datePosted: 'desc' }, { id: 'desc' }],
         skip,
         take: limit,
       }),
@@ -73,6 +73,40 @@ export class JobsService {
 
   async findOne(id: number) {
     return this.prisma.job.findUnique({ where: { id } });
+  }
+
+  async findRelated(id: number) {
+    const job = await this.prisma.job.findUnique({ where: { id }, select: { category: true } });
+    if (!job) return null;
+    const related = await this.prisma.job.findMany({
+      where: { isActive: true, id: { not: id }, category: { hasSome: job.category } },
+      orderBy: [{ aiAnalyzedAt: { sort: 'desc', nulls: 'last' } }, { datePosted: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }],
+      take: 5,
+    });
+    return related.map(job => ({ ...job, description: job.description?.slice(0, LIST_DESCRIPTION_PREVIEW) }));
+  }
+
+  async getInsights() {
+    const [stats, sources, analyzedCount, tags, recentTrend] = await Promise.all([
+      this.getStats(),
+      this.prisma.job.groupBy({ by: ['sourceSite'], where: { isActive: true }, _count: true }),
+      this.prisma.job.count({ where: { isActive: true, aiAnalysis: { not: Prisma.AnyNull } } }),
+      this.prisma.$queryRaw<{ tag: string; count: number }[]>(Prisma.sql`
+        SELECT min(trim(tag)) AS tag, count(DISTINCT id)::int AS count
+        FROM jobs CROSS JOIN unnest(tags) AS tag WHERE is_active AND trim(tag) <> ''
+        GROUP BY lower(trim(tag)) ORDER BY count DESC, min(trim(tag)) LIMIT 20
+      `),
+      this.prisma.$queryRaw<{ label: string; count: number }[]>(Prisma.sql`
+        WITH weeks AS (SELECT generate_series(date_trunc('week', current_date) - interval '7 weeks',
+          date_trunc('week', current_date), interval '1 week') AS start)
+        SELECT to_char(start, 'YYYY-MM-DD') AS label, count(j.id)::int AS count
+        FROM weeks LEFT JOIN jobs j ON j.is_active AND coalesce(j.date_posted, j.date_scraped) >= start
+          AND coalesce(j.date_posted, j.date_scraped) < start + interval '1 week'
+        GROUP BY start ORDER BY start
+      `),
+    ]);
+    return { ...stats, sources: Object.fromEntries(sources.map(row => [row.sourceSite, row._count])),
+      analyzedCount, topTags: tags, recentTrend };
   }
 
   async getStats(): Promise<JobStats> {

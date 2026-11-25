@@ -23,7 +23,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
   mobile: '移动开发',
   game: '游戏开发',
   devops: 'DevOps',
-  ai: 'AI/机器学习',
+  ai: 'AI',
   blockchain: '区块链',
   quant: '量化交易',
   security: '安全',

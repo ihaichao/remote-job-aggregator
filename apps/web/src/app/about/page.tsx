@@ -25,10 +25,13 @@ export default function AboutPage() {
       <h2>职位从哪里来</h2>
       <p>我们定期从以下公开渠道收集远程开发相关的招聘信息：</p>
       <ul>
-        <li><strong>V2EX</strong>：国内开发者社区的「酷工作」等招聘节点，以国内公司和团队为主。</li>
+        <li><strong>V2EX</strong>：国内开发者社区的「酷工作」等招聘节点，以国内公司和出海团队为主。</li>
         <li><strong>电鸭社区（Eleduck）</strong>：国内知名的远程工作社区，有大量全职和兼职远程岗位。</li>
         <li><strong>Real Work From Anywhere</strong>：面向全球招聘、不限地区的远程职位。</li>
         <li><strong>Remote.com</strong>：海外公司发布的远程工程师岗位。</li>
+        <li><strong>Himalayas</strong>：海外远程招聘平台，筛选支持中国区或全球远程的研发岗位。</li>
+        <li><strong>阮一峰周刊「谁在招人」</strong>：GitHub 中文开发者社区的招聘议题，仅收录其中的远程岗位。</li>
+        <li><strong>Rebase 社区</strong>：GitHub 开源招聘仓库，以 Web3、区块链与量化基础设施远程岗位为主。</li>
       </ul>
       <p>每条职位都会注明来源，并附上原帖链接。申请时请以原帖信息为准。</p>
 
@@ -36,9 +39,10 @@ export default function AboutPage() {
       <ul>
         <li><strong>去重</strong>：同一个职位在多个地方发布时，只保留一条。</li>
         <li><strong>分类</strong>：按技术方向分为 {categoryNames} 等类别，一个职位最多可以属于 3 个类别。</li>
+        <li><strong>中文解读与信息提炼</strong>：对招聘信息提炼核心职责、技术栈以及时区与英语要求，方便快速筛选。</li>
         <li><strong>标注工作类型和地区要求</strong>：区分全职、兼职，以及是否限制所在地区或时区。</li>
         <li><strong>过滤</strong>：尽量剔除需要坐班的岗位和与开发无关的信息。</li>
-        <li><strong>每天更新</strong>：每天自动抓取两次，新职位通常当天就会出现在列表里。</li>
+        <li><strong>定时同步与清理</strong>：每天自动抓取两次新职位，每天定时巡检失效岗位并下架，每周自动清理已下线及超过 90 天的过期职位。</li>
       </ul>
 
       <h2>使用建议</h2>
